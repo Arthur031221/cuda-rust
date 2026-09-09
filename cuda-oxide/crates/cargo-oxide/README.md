@@ -366,7 +366,9 @@ Removes project-local build outputs and the generated cuda-oxide artifacts besid
 
 ### `cargo oxide fmt [--check]`
 
-Formats all crates in the workspace: root workspace, `rustc-codegen-cuda`, and all examples. With `--check`, reports files that need formatting without modifying them.
+Formats the SIMT workspace, `rustc-codegen-cuda`, and all examples; in the
+merged repository it also formats the parent shared-host workspace. With
+`--check`, reports files that need formatting without modifying them.
 
 ### `cargo oxide doctor`
 

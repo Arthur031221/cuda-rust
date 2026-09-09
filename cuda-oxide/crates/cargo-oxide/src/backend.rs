@@ -111,9 +111,10 @@ use crate::backend_source::{self, DependencySource};
 
 /// Finds the workspace root by walking up from CWD.
 ///
-/// Supports both the historical single-product layout and the combined
-/// repository, where the root `Cargo.toml` owns members under
-/// `cuda-oxide/crates/`.
+/// Supports the component workspace (`crates/rustc-codegen-cuda`) and the
+/// historical combined layout (`cuda-oxide/crates/rustc-codegen-cuda`).
+/// Starting below `cuda-oxide/` finds the component root before the stable
+/// parent workspace.
 pub fn find_workspace_root() -> Option<PathBuf> {
     let mut dir = std::env::current_dir().ok()?;
     loop {

@@ -116,6 +116,7 @@ jobs:
 
       - name: Artifact modes keep shared Cargo dependencies fresh
         timeout-minutes: 10
+        working-directory: cuda-oxide
         env:
           CUDA_TOOLKIT_PATH: ${{ steps.cuda-toolkit.outputs.CUDA_PATH }}
           CUDA_OXIDE_LLC: /usr/bin/llc-22

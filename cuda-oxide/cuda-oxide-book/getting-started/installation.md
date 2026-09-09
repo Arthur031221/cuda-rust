@@ -20,7 +20,7 @@ without a driver and fails on that call with `CUDA_ERROR_NOT_INITIALIZED`; the
 error message names the library files the loader tried. A driver whose CUDA
 major version is older than the toolkit's (a 12.x driver with a 13.x build)
 fails the same way with a "driver too old" message.
-| **Rust**         | Nightly (pinned)    | Pinned in `rust-toolchain.toml`                               |
+| **Rust**         | Nightly (pinned)    | Pinned in `cuda-oxide/rust-toolchain.toml`                    |
 
 :::{note}
 cuda-oxide currently targets **Linux only**. Windows is not supported.
@@ -241,7 +241,10 @@ Validated on Asus GX10 / NVIDIA DGX Spark.
 
 ## Rust toolchain
 
-The workspace ships a `rust-toolchain.toml` that pins the exact nightly version and required components. When you first run any `cargo` command inside the repo, `rustup` will install the correct toolchain automatically.
+The CUDA Oxide workspace ships `cuda-oxide/rust-toolchain.toml`, which pins the
+exact nightly version and required components. When you first run a `cargo`
+command inside `cuda-oxide/`, rustup installs the correct toolchain
+automatically. Commands at the repository root and in `cutile-rs/` use stable.
 
 If you need to install it manually:
 
@@ -315,7 +318,7 @@ The full set, as `cargo oxide --help` reports it:
 | `debug` | Build with debug info and launch `cuda-gdb` |
 | `list` | List the examples bundled with the cuda-oxide workspace |
 | `inspect` | Build an example or project and print the generated PTX |
-| `fmt` | Format all crates (root workspace, codegen backend, examples) |
+| `fmt` | Format all crates (SIMT workspace, codegen backend, examples) |
 | `new` | Scaffold a new standalone cuda-oxide project |
 | `clean` | Remove project-local build outputs and generated cuda-oxide artifacts |
 | `doctor` | Check that your environment is set up correctly |
@@ -330,7 +333,7 @@ cannot:
 # Arguments after `--` go to cargo; with none it is a plain `cargo test`.
 cargo oxide test -- --lib
 
-# Format every scope the fmt CI gate checks: the root workspace, the codegen
+# Format every scope the fmt CI gate checks: the SIMT workspace, the codegen
 # backend, the cuda-macros device-only fixture, and every manifest under
 # examples/ including nested ones. Each is its own [workspace], so a single
 # `cargo fmt` at the root misses most of them.

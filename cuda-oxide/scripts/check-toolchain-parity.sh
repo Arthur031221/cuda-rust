@@ -1,39 +1,32 @@
 #!/usr/bin/env bash
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
-# Verify every copy of the toolchain pin still agrees with rust-toolchain.toml.
+# Verify every copy of the toolchain pin still agrees with CUDA Oxide's
+# rust-toolchain.toml.
 #
 # The pin is copied into several places, and nothing else checks that the
 # copies move together:
 #
-#   1. crates/rustc-codegen-cuda/rust-toolchain.toml.  That crate carries its
-#      own [workspace] for the rustc_private dylibs, so rustup resolves it
-#      against this file rather than the repo root's, and its own header says
-#      "Must match the parent cuda-oxide toolchain exactly!".  A backend built
-#      against a different nightly than the driver fails to load, so the two
-#      disagreeing is a build break rather than a style nit -- but the header
-#      is a comment, and a comment enforces nothing.
-#
-#   2. The RUST_TOOLCHAIN_TOML scaffold in
+#   1. The RUST_TOOLCHAIN_TOML scaffold in
 #      crates/cargo-oxide/src/commands/scaffold.rs.
 #      `cargo oxide new` writes it into every new project as that project's
 #      rust-toolchain.toml, so this is the highest-impact copy: a stale
 #      scaffold never breaks this repo's CI, it hands each new user a pin
 #      whose backend cannot load, and the failure surfaces on their machine.
 #
-#   3. The rust feature in .devcontainer/devcontainer.json.  It preinstalls
+#   2. The rust feature in .devcontainer/devcontainer.json.  It preinstalls
 #      the toolchain so the container's first build does not download it; a
 #      stale version there warms the wrong cache, and a component the pin no
 #      longer names keeps being installed into every container.
 #
-#   4. The `[toolchain]` blocks quoted in the book.  These are presented as
-#      the repo's actual file -- one is even labelled "already in the repo
-#      root" -- so a reader copies them into their own project.  When they go
+#   3. The `[toolchain]` blocks quoted in the book.  These are presented as
+#      the repo's actual file, so a reader copies them into their own project.
+#      When they go
 #      stale the book hands out a pin that silently omits a component, and the
 #      symptom lands later and elsewhere: a missing `rustfmt` surfaces as
 #      `cargo oxide fmt` failing, not as a bad toolchain file.
 #
-#   5. The dated commands and prose across the book and the READMEs:
+#   4. The dated commands and prose across the book and the READMEs:
 #      `rustup toolchain install nightly-...`, `cargo +nightly-... install`,
 #      and sentences naming the pin.  Readers run those commands outside a
 #      checkout, where no rust-toolchain.toml can correct a stale date.
@@ -56,8 +49,7 @@ export LC_ALL=C
 
 cd "$(dirname "$0")/.."
 
-ROOT_PIN=../rust-toolchain.toml
-NESTED_PIN=crates/rustc-codegen-cuda/rust-toolchain.toml
+ROOT_PIN=rust-toolchain.toml
 SCAFFOLD=crates/cargo-oxide/src/commands/scaffold.rs
 DEVCONTAINER=../.devcontainer/devcontainer.json
 
@@ -77,12 +69,11 @@ if ! command -v git >/dev/null 2>&1; then
 fi
 
 test -s "${ROOT_PIN}"
-test -s "${NESTED_PIN}"
 test -s "${SCAFFOLD}"
 test -s "${DEVCONTAINER}"
 
 GIT_ROOT="$(git rev-parse --show-toplevel)"
-python3 - "${ROOT_PIN}" "${NESTED_PIN}" "${SCAFFOLD}" "${DEVCONTAINER}" "${GIT_ROOT}" <<'PY'
+python3 - "${ROOT_PIN}" "${SCAFFOLD}" "${DEVCONTAINER}" "${GIT_ROOT}" <<'PY'
 import glob
 import json
 import os
@@ -90,13 +81,11 @@ import re
 import subprocess
 import sys
 
-root_path, nested_path, scaffold_path, devcontainer_path, git_root = sys.argv[1:6]
+root_path, scaffold_path, devcontainer_path, git_root = sys.argv[1:5]
 
 CHANNEL = re.compile(r'^\s*channel\s*=\s*"([^"]+)"', re.M)
-# Both layouts are in the tree: the root file spreads the list over one entry
-# per line, the nested one keeps it on a single line.  Match the whole
-# bracketed span and pull the quoted names out of it, so neither layout needs
-# its own pattern and reflowing a list never breaks this guard.
+# Match the whole bracketed span and pull the quoted names out of it so
+# reflowing the list never breaks this guard.
 COMPONENTS = re.compile(r"^\s*components\s*=\s*\[(.*?)\]", re.M | re.S)
 
 
@@ -127,18 +116,6 @@ if not root_channel or not root_components:
     )
 
 failures = []
-
-nested_channel, nested_components = pin(read(nested_path), nested_path)
-if nested_channel != root_channel:
-    failures.append(
-        f"{nested_path} pins channel {nested_channel!r}, "
-        f"{root_path} pins {root_channel!r}"
-    )
-if nested_components != root_components:
-    failures.append(
-        f"{nested_path} lists components {nested_components!r}, "
-        f"{root_path} lists {root_components!r}"
-    )
 
 # The scaffold `cargo oxide new` writes into user projects.  It is a full
 # rust-toolchain.toml, so both keys are required and must match exactly.
@@ -316,7 +293,7 @@ if failures:
     print(file=sys.stderr)
     print(
         f"Every copy must state the same channel and components as {root_path}. "
-        "The nested\npin and the `cargo oxide new` scaffold must match exactly "
+        "The `cargo oxide new` scaffold must match exactly "
         "(rustc_private dylibs);\nthe book's blocks are presented to readers as "
         "the repo's real file, and the\ndated commands run where no "
         "rust-toolchain.toml can correct them.",
@@ -326,7 +303,7 @@ if failures:
 
 print(
     f"OK: {root_path} pins {root_channel} with {len(root_components)} components; "
-    "the nested pin, the `cargo oxide new` scaffold, the devcontainer, all "
+    "the `cargo oxide new` scaffold, the devcontainer, all "
     f"{quoted} block(s) quoted in the book, and all {dated} dated reference(s) "
     "in tracked markdown agree."
 )

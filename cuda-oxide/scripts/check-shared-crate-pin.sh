@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
-# Verify every copy of the shared host-crate pin agrees with the root workspace.
+# Verify every copy of the shared host-crate pin agrees with the SIMT workspace.
 #
-# cuda-bindings, cuda-core, and cuda-async come from cutile-rs. The root
+# cuda-bindings, cuda-core, and cuda-async come from cutile-rs. CUDA Oxide's
 # `[workspace.dependencies]` names the release once, but that line is copied:
 #
 #   1. Into every example workspace's Cargo.toml (each example is its own
@@ -22,13 +22,13 @@
 # or, between a cutile-rs tag and its crates.io release, a git tag
 # (`{ git = ".../cutile-rs", tag = "v0.3.1" }`). Both spell the same version,
 # so the comparison is on the version string, and every manifest must also
-# use the same *form* as the root (all git, or all registry).
+# use the same *form* as CUDA Oxide (all git, or all registry).
 set -euo pipefail
 export LC_ALL=C
 cd "$(dirname "$0")/.."
 GIT_ROOT="$(git rev-parse --show-toplevel)"
 
-ROOT="${GIT_ROOT}/Cargo.toml"
+ROOT="${GIT_ROOT}/cuda-oxide/Cargo.toml"
 SCAFFOLD=crates/cargo-oxide/src/commands/scaffold.rs
 CRATES='cuda-(bindings|core|async)'
 
@@ -52,7 +52,7 @@ spec_of() {
 root_spec="$(spec_of "${ROOT}" cuda-core)"
 [ -n "${root_spec}" ] || { echo "error: ${ROOT} has no cuda-core workspace dependency" >&2; exit 1; }
 root_form="${root_spec% *}"; root_version="${root_spec#* }"
-echo "root pin: cuda-core ${root_form} ${root_version}"
+echo "CUDA Oxide pin: cuda-core ${root_form} ${root_version}"
 
 status=0
 for crate in cuda-bindings cuda-async; do
@@ -96,8 +96,8 @@ scaffold_version="$(sed -n -E 's/^pub\(super\) const SHARED_HOST_CRATES_VERSION:
 if [ -z "${scaffold_version}" ]; then
     echo "error: ${SCAFFOLD}: SHARED_HOST_CRATES_VERSION not found" >&2; status=1
 elif [ "${scaffold_version}" != "${root_version}" ]; then
-    echo "error: ${SCAFFOLD}: SHARED_HOST_CRATES_VERSION is ${scaffold_version}, root pin is ${root_version}" >&2; status=1
+    echo "error: ${SCAFFOLD}: SHARED_HOST_CRATES_VERSION is ${scaffold_version}, CUDA Oxide pin is ${root_version}" >&2; status=1
 fi
 
-[ "${status}" -eq 0 ] && echo "OK: every shared host-crate pin agrees with the root (${root_form} ${root_version})."
+[ "${status}" -eq 0 ] && echo "OK: every shared host-crate pin agrees with CUDA Oxide (${root_form} ${root_version})."
 exit "${status}"

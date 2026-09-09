@@ -8,8 +8,8 @@ This dev container provides the toolchain expected by cuda-oxide:
 - Clang 21 resource headers for `bindgen`
 - Rust `nightly-2026-08-28` with `rust-src`, `rustc-dev`, `rust-analyzer`,
   `rustfmt` and `clippy`. `llvm-tools` is not preinstalled in the image;
-  rustup adds it on your first cargo command in the checkout, because
-  `rust-toolchain.toml` names it. The image ships LLVM 21 and
+  rustup adds it on your first cargo command under `cuda-oxide/`, because
+  `cuda-oxide/rust-toolchain.toml` names it. The image ships LLVM 21 and
   `CUDA_OXIDE_LLC` already points at `llc-21`, so nothing waits on it.
 
 Open the repository in a devcontainer-aware editor and choose "Reopen in
@@ -20,6 +20,7 @@ writable from the host checkout.
 Inside the container:
 
 ```bash
+cd cuda-oxide
 cargo oxide doctor
 cargo oxide run vecadd
 ```

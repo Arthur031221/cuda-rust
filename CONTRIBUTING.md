@@ -146,13 +146,12 @@ hand even so.
 
 ### Formatting and Style
 
-- Run `cargo oxide fmt` before submitting. All code must be formatted with
-  `rustfmt`. Use `cargo oxide fmt` rather than a bare `cargo fmt`: the codegen
-  backend, every example and the `cuda-macros` device-only test fixture are
-  each their own workspace, so `cargo fmt` at the repository root reaches none
-  of them, while the `fmt` CI job checks all four scopes and will fail on code
-  you never had a chance to format. `cargo oxide fmt` mirrors that job, nested
-  example workspaces included.
+- Run `(cd cuda-oxide && cargo oxide fmt)` before submitting. All code must be
+  formatted with `rustfmt`. Use `cargo oxide fmt` rather than a bare
+  `cargo fmt`: the stable host workspace, SIMT workspace, codegen backend,
+  examples, and the `cuda-macros` device-only fixture are separate formatting
+  scopes. The command mirrors the `fmt` CI job, including the parent host
+  workspace in this merged repository and nested example workspaces.
 - Run clippy and address any warnings where reasonable. There is no single
   command covering its scopes, and it has more of them than `fmt`: the two
   workspaces below, plus one run per example, plus the nested example
@@ -161,7 +160,7 @@ hand even so.
   running by hand are:
 
   ```bash
-  cargo clippy --workspace --all-targets -- -D warnings
+  (cd cuda-oxide && cargo clippy --workspace --all-targets -- -D warnings)
   (cd cuda-oxide/crates/rustc-codegen-cuda && cargo clippy --all-targets -- -D warnings)
   ```
 - Follow existing code patterns and conventions in the crate you are
