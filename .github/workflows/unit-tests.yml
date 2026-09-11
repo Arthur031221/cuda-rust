@@ -28,6 +28,10 @@ jobs:
         # crates from cutile-rs now; their unit tests run in cutile-rs CI.
         #
         # Crates intentionally not in this matrix:
+        #   * `cuda-bindings` — shared host crate; unit tests run in cutile-rs CI.
+        #   * `cuda-core` — shared host crate; unit tests run in cutile-rs CI.
+        #   * `cuda-core-derive` — proc-macro for cuda-core; tests run via cuda-core.
+        #   * `cuda-async` — shared host crate; unit tests run in cutile-rs CI.
         #   * `fuzzer` — differential-testing infra with no unit tests.
         #   * `rustc-codegen-cuda` — its own [workspace] that links against
         #     `rustc-private` dylibs; covered by the separate job below.

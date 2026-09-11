@@ -24,10 +24,14 @@ members = [
     "cuda-oxide/crates/nvvm-transforms",
     "cuda-oxide/crates/cargo-oxide",
     "cuda-oxide/crates/oxide-artifacts",
+    # Host-side crates shared with cutile-rs and published from NVlabs/cutile-rs.
+    # The cuda-oxide SIMT surface lives under their `simt` modules. Inlined
+    # package metadata (edition 2021, 0.4.0) so they do not inherit Oxide 2024.
+    "cuda-bindings",
+    "cuda-core",
+    "cuda-core-derive",
+    "cuda-async",
     # FFI bindings
-    # cuda-bindings, cuda-core, and cuda-async are the host-side crates shared
-    # with cutile-rs and published from NVlabs/cutile-rs; the cuda-oxide SIMT
-    # surface lives under their `simt` modules. The local copies are gone.
     "cuda-oxide/crates/libnvvm-sys",
     "cuda-oxide/crates/nvjitlink-sys",
     # Internal naming contract (workspace-private; publish = false)
@@ -81,6 +85,14 @@ cuda-host = { path = "cuda-oxide/crates/cuda-host" }
 # `cuda-host` names `features = ["host"]`, so anything that loads or launches a
 # module still gets it.
 cuda-macros = { path = "cuda-oxide/crates/cuda-macros", default-features = false }
+# The crates.io release, not the in-tree path, for the same reason as
+# oxide-artifacts below: a path copy of the same version is a second crate to
+# rustc. Every example is its own [workspace] pinned to crates.io 0.3.1 and
+# also depends on cuda-host by path, so a path pin here puts two cuda_core
+# crates in one example graph and `CudaModule` stops unifying. The lifted
+# directories stay workspace members as the source these releases are
+# published from (and what nested cutile-rs path-depends on); bump, publish,
+# then move these lines.
 cuda-bindings = "0.3.1"
 cuda-core = "0.3.1"
 cuda-async = "0.3.1"

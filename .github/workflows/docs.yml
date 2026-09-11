@@ -46,12 +46,20 @@ jobs:
           export LIBRARY_PATH="${sysroot}/lib:${LIBRARY_PATH:-}"
           export LD_LIBRARY_PATH="${sysroot}/lib:${LD_LIBRARY_PATH:-}"
 
-          # Docs must build warning-free (RUSTDOCFLAGS=-D warnings above).
-          cargo doc --no-deps --workspace
+          # The shared host crates are workspace members so they build and
+          # publish from here, but they are cutile-rs source: their gates live
+          # in cutile-rs.yml, which does not run rustdoc under -D warnings.
+          # Documenting them here would hold imported code to a policy its own
+          # repository does not apply, so exclude them rather than diverge from
+          # NVlabs/cutile-rs over a doc-link nit. cuda-bindings would also drag
+          # its bindgen-generated doc comments in.
+          host_crates="--exclude cuda-bindings --exclude cuda-core --exclude cuda-core-derive --exclude cuda-async"
 
-          # Run doctests. The shared cuda-bindings is not a workspace member,
-          # so nothing here reaches its bindgen-generated doc comments.
-          cargo test --doc --workspace
+          # Docs must build warning-free (RUSTDOCFLAGS=-D warnings above).
+          cargo doc --no-deps --workspace ${host_crates}
+
+          # Run doctests.
+          cargo test --doc --workspace ${host_crates}
 
       # `rustc-codegen-cuda` is its own [workspace] (it links against
       # rustc-private dylibs), so `--workspace` above never reaches it. fmt,

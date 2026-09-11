@@ -30,7 +30,7 @@ fmt-check:
 # on locally.
 # Run clippy with warnings as errors (root + codegen workspaces)
 clippy:
-    cargo clippy --workspace --all-targets -- -D warnings
+    cargo clippy --workspace --all-targets --exclude cuda-bindings --exclude cuda-core --exclude cuda-core-derive --exclude cuda-async -- -D warnings
     # Its own [workspace], so `--workspace` above stops at that boundary.
     cd crates/rustc-codegen-cuda && cargo clippy --all-targets -- -D warnings
 
@@ -43,7 +43,7 @@ clippy:
 # `--all-targets --lib --tests` already selected the same members and targets.
 # Run clippy and auto-fix warnings (root + codegen workspaces)
 clippy-fix:
-    cargo clippy --workspace --all-targets --fix --allow-dirty --allow-staged
+    cargo clippy --workspace --all-targets --exclude cuda-bindings --exclude cuda-core --exclude cuda-core-derive --exclude cuda-async --fix --allow-dirty --allow-staged
     # Its own [workspace], so `--workspace` above stops at that boundary.
     cd crates/rustc-codegen-cuda && cargo clippy --all-targets --fix --allow-dirty --allow-staged
 

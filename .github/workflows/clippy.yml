@@ -34,7 +34,7 @@ jobs:
       - name: Run clippy (workspace crates)
         env:
           CUDA_TOOLKIT_PATH: ${{ steps.cuda-toolkit.outputs.CUDA_PATH }}
-        run: cargo clippy --workspace --all-targets -- -D warnings
+        run: cargo clippy --workspace --all-targets --exclude cuda-bindings --exclude cuda-core --exclude cuda-core-derive --exclude cuda-async -- -D warnings
 
       # `rustc-codegen-cuda` and each example under examples/ are their own
       # standalone workspaces (the codegen backend is swapped in via

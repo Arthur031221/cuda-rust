@@ -1,7 +1,8 @@
 ---
 # Port of cutile-rs/.github/workflows/pr.yml for the monorepo.
-# cutile-rs remains a nested Cargo workspace until workspace membership is
-# reconciled, so cargo/script steps run under cutile-rs.
+# Tile crates stay a nested Cargo workspace under cutile-rs/. Shared host
+# crates (cuda-bindings, cuda-core, cuda-core-derive, cuda-async) are git-root
+# workspace members; `-p` those from the repository root.
 # Checkout does not init submodules. cuda-tile-rs is outside default-members,
 # and these CUDA images have no git until the setup action, so
 # `submodules: recursive` makes actions/checkout reject the REST API fallback.
@@ -111,6 +112,11 @@ jobs:
         # cuda-tile-rs is outside default-members (its build compiles LLVM); keep it out of clippy too.
         run: cargo clippy --workspace --exclude cuda-tile-rs --all-targets
 
+      - name: Clippy (host crates)
+        working-directory: ${{ github.workspace }}
+        run: cargo clippy -p cuda-bindings -p cuda-core -p cuda-core-derive -p cuda-async \
+            --all-targets --all-features
+
       - name: TileIR toolchain smoke test
         run: cargo test -p cutile-ir --test bytecode_validate simple_arithmetic -- --exact --nocapture
 
@@ -152,6 +158,10 @@ jobs:
             --exclude cutile-examples \
             --exclude cutile-benchmarks
 
+      - name: Check host-crate API compatibility against crates.io
+        working-directory: ${{ github.workspace }}
+        run: cargo semver-checks -p cuda-bindings -p cuda-core -p cuda-async
+
   # The shared host-side crates (cuda-bindings, cuda-core, cuda-async)
   # support CUDA 13.0+, while the Tile stack requires 13.2+. This lane keeps
   # the 13.0 floor honest: compile-only, no GPU, no TileIR toolchain (13.0
@@ -170,6 +180,7 @@ jobs:
       - uses: ./cutile-rs/.github/actions/setup
 
       - name: Check shared crates against CUDA 13.0
+        working-directory: ${{ github.workspace }}
         run: cargo check -p cuda-bindings -p cuda-core -p cuda-async --all-targets
 
   # Nightly also covers cuda-core's optional native f16 support. The remaining
@@ -204,15 +215,19 @@ jobs:
         run: cargo clippy --workspace --exclude cuda-tile-rs --all-targets --all-features
 
       - name: Native f16 DeviceCopy
+        working-directory: ${{ github.workspace }}
         run: cargo test -p cuda-core --features f16 --test simt_device_copy_impls
 
       - name: loom model check (interleavings + weak memory)
+        working-directory: ${{ github.workspace }}
         run: RUSTFLAGS="--cfg loom" cargo test -p cuda-async --lib loom_
 
       - name: miri (UnsafeCell / pointer UB)
+        working-directory: ${{ github.workspace }}
         run: cargo miri test -p cuda-async --lib slot_table
 
       - name: ThreadSanitizer (sampled data races, full-scale stress)
+        working-directory: ${{ github.workspace }}
         run: |
           # setarch -R pre-disables ASLR so TSan doesn't need to re-exec itself
           # (which the container blocks); this sidesteps the high mmap-entropy

@@ -112,15 +112,15 @@ run_step \
 # run_gpu_tests.sh.
 run_step \
     "cuda-bindings unit and toolkit-discovery tests" \
-    cargo test -p cuda-bindings -- --skip cuda_tests::
+    host_cargo test -p cuda-bindings -- --skip cuda_tests::
 
 run_step \
     "cuda-core unit tests" \
-    cargo test -p cuda-core --lib
+    host_cargo test -p cuda-core --lib
 
 run_step \
     "cuda-core compile-time contract tests" \
-    cargo test -p cuda-core \
+    host_cargo test -p cuda-core \
     --test simt_device_copy_derive \
     --test simt_device_copy_impls \
     --test simt_launch_contract_types
@@ -129,21 +129,21 @@ run_step \
 # brand/rank rejection, buffer aliasing) that no other target covers.
 run_step \
     "cuda-core doc tests" \
-    cargo test -p cuda-core --doc
+    host_cargo test -p cuda-core --doc
 
 run_step \
     "cuda-async unit tests" \
-    cargo test -p cuda-async --lib
+    host_cargo test -p cuda-async --lib
 
 run_step \
     "cuda-async doc tests" \
-    cargo test -p cuda-async --doc
+    host_cargo test -p cuda-async --doc
 
 # Driver-free by construction: its one driver-touching case asserts the
 # Err path, which driverless shims also produce.
 run_step \
     "cuda-async error-handling integration test" \
-    cargo test -p cuda-async --test error_handling
+    host_cargo test -p cuda-async --test error_handling
 
 print_summary_and_exit \
     "All CPU tests passed!" \

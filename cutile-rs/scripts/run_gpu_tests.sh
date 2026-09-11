@@ -77,11 +77,11 @@ run_step \
 
 run_step \
     "cuda-core GPU integration test vmm" \
-    cargo test -p cuda-core --test vmm
+    host_cargo test -p cuda-core --test vmm
 
 run_step \
     "cuda-core GPU integration test vmm_multicast" \
-    cargo test -p cuda-core --test vmm_multicast
+    host_cargo test -p cuda-core --test vmm_multicast
 
 # The SIMT integration tests carried over from cuda-oxide. simt_vmm_p2p
 # exercises the real two-GPU P2P path (it self-skips on single-device
@@ -101,18 +101,18 @@ for test_target in \
 do
     run_step \
         "cuda-core GPU integration test ${test_target}" \
-        cargo test -p cuda-core --test "$test_target"
+        host_cargo test -p cuda-core --test "$test_target"
 done
 
 run_step \
     "cuda-async unit tests (with live driver)" \
-    cargo test -p cuda-async --lib
+    host_cargo test -p cuda-async --lib
 
 # Unfiltered: includes the GPU-requiring `cuda_tests` module that the CPU
 # path skips.
 run_step \
     "cuda-bindings tests (with live driver)" \
-    cargo test -p cuda-bindings
+    host_cargo test -p cuda-bindings
 
 for test_target in \
     concurrent_capture \
@@ -126,7 +126,7 @@ for test_target in \
 do
     run_step \
         "cuda-async GPU integration test ${test_target}" \
-        cargo test -p cuda-async --test "$test_target"
+        host_cargo test -p cuda-async --test "$test_target"
 done
 
 print_summary_and_exit \
