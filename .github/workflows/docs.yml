@@ -1,11 +1,36 @@
 ---
 name: docs
 
+# Path-filtered SIMT lane (same roots as ci.yml).
 on:
   push:
     branches: [main]
+    paths:
+      - 'cuda-oxide/**'
+      - 'cuda-bindings/**'
+      - 'cuda-core/**'
+      - 'cuda-core-derive/**'
+      - 'cuda-async/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'clippy.toml'
+      - 'flake.nix'
+      - 'flake.lock'
+      - '.github/workflows/**'
   pull_request:
     branches: [main]
+    paths:
+      - 'cuda-oxide/**'
+      - 'cuda-bindings/**'
+      - 'cuda-core/**'
+      - 'cuda-core-derive/**'
+      - 'cuda-async/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'clippy.toml'
+      - 'flake.nix'
+      - 'flake.lock'
+      - '.github/workflows/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref_name }}
