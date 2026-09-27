@@ -201,19 +201,26 @@ impl Parsable for MirFuncOp {
             vec![],
             vec![],
             vec![],
-            1,
+            0,
         );
+        // Region::parser attaches the parsed body. Preallocating a region here
+        // would leave an empty region before the body and violate NRegions<1>.
         let mut parser = (
             spaced(token('@').with(Identifier::parser(()))).skip(spaced(token(':'))),
             spaced(type_parser()),
-            spaced(AttributeDict::parser(())),
+            spaced(optional(AttributeDict::parser(()))),
             spaced(optional(Region::parser(op))),
         );
         parser
             .parse_stream(state_stream)
-            .map(|(fname, fty, attrs, _region)| -> OpObj {
+            .map(|(fname, fty, attrs, region)| -> OpObj {
                 let ctx = &mut state_stream.state.ctx;
-                op.deref_mut(ctx).attributes = attrs;
+                // A declaration still needs the one empty region required by
+                // MirFuncOp, even when no textual body was supplied.
+                if region.is_none() {
+                    Operation::add_region(op, ctx);
+                }
+                op.deref_mut(ctx).attributes = attrs.unwrap_or_default();
                 let ty_attr = TypeAttr::new(fty);
                 let opop = MirFuncOp { op };
                 opop.set_symbol_name(ctx, fname);

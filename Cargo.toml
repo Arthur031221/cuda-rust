@@ -13,6 +13,7 @@ members = [
     "crates/cuda-host",
     "crates/cuda-macros",
     "crates/llvm-export",
+    "crates/lean-exporter",
     "crates/dialect-mir",
     "crates/dialect-iket",
     "crates/dialect-nvvm",
@@ -63,6 +64,7 @@ pliron-llvm = { git = "https://github.com/pliron-org/pliron", rev = "06d99a3df93
 # Internal crates
 cuda-target-spec = { path = "crates/cuda-target-spec" }
 llvm-export = { path = "crates/llvm-export" }
+lean-exporter = { path = "crates/lean-exporter" }
 dialect-mir = { path = "crates/dialect-mir" }
 dialect-iket = { path = "crates/dialect-iket" }
 dialect-ptx = { path = "crates/dialect-ptx" }

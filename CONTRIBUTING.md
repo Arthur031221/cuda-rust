@@ -122,6 +122,11 @@ The repository includes a `flake.nix` that provides a fully reproducible develop
 environment (CUDA 13, LLVM 22, Clang, pinned Rust nightly). If you have Nix with
 flakes enabled, `nix develop` is the quickest way to get everything in place.
 
+Git-backed Nix flakes only include files known to Git. After adding a crate or
+source file, run `git add -N <path>` before `nix develop` to make it visible to
+Nix without staging its contents. Otherwise, Cargo can report a missing
+workspace manifest or module even though the file exists locally.
+
 ### Running the checks
 
 Most of CI is one command. The repository ships a `Justfile` that mirrors the

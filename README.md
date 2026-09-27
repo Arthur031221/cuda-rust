@@ -363,6 +363,8 @@ cargo oxide run gemm_sol_final
 
 To build and serve the book locally, see [cuda-oxide-book/README.md](./cuda-oxide-book/README.md).
 
+The [Lean verification experiment](lean/README.md) contains the initial GPU access model, proofs, and planned compiler workflow.
+
 ## Ecosystem
 
 cuda-oxide is one of several Rust + GPU efforts under active development. Projects in this space address different parts of the problem — Vulkan/SPIR-V for graphics, implicit offload via LLVM, third-party CUDA backends, safe driver bindings — and we've been working with maintainers across the broader Rust GPU community on how to move GPU computing in Rust forward together. For where cuda-oxide fits relative to other projects, see the [Ecosystem appendix](https://nvlabs.github.io/cuda-oxide/appendix/ecosystem.html) of the book.
