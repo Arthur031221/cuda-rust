@@ -8,7 +8,7 @@ name: cargo-deny
 # Four parts of the same concern. `check` enforces the license *policy* over
 # the whole resolved graph from deny.toml, once per `[workspace]` root that
 # resolves third-party crates and is neither an example nor under cutile-rs:
-# the stable host workspace, the cuda-oxide workspace,
+# the stable host workspace, the SIMT workspace,
 # cuda-oxide/crates/rustc-codegen-cuda, and the cuda-macros device-only
 # fixture. Each declares its own `[workspace]`, so each is a
 # separate resolution the others cannot reach. `license-manifest` enforces that
@@ -45,15 +45,14 @@ jobs:
       # re-resolved on the way past. Without it this step rewrites the very
       # Cargo.lock it is judging -- verified: deleting a package block from the
       # lock still exits 0 here and leaves the file rewritten, while --locked
-      # stops with "cannot update the lock file". The other two runs below and
+      # stops with "cannot update the lock file". The other runs below and
       # in cuda-oxide/scripts/ already pass it.
-      # The git root is the host workspace, so walking up never sees
-      # cuda-oxide/deny.toml. `--config` is a `check` subcommand flag on both
-      # cargo-deny 0.18 and 0.19+: it has to follow `check`. This step's working
-      # directory and manifest directory are both the git root, so 0.18
-      # (manifest-relative) and 0.19+ (cwd-relative) resolve the same file.
+      # Host-crate dev-dependencies are a separate resolution (cuda-async's loom
+      # is not in the SIMT graph). The git-root deny.toml is a copy of
+      # cuda-oxide/deny.toml, so this walks up to that policy and does not pass
+      # --config.
       - name: Run cargo-deny over the stable host workspace
-        run: cargo deny --locked check --config cuda-oxide/deny.toml
+        run: cargo deny --manifest-path Cargo.toml --workspace --locked check
 
       # Find deny.toml through a SIMT member; --workspace checks all SIMT members.
       - name: Run cargo-deny over the CUDA Oxide workspace
