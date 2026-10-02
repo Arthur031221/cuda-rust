@@ -30,7 +30,7 @@ cuda-oxide currently targets **Linux only**. Windows is not supported.
 
 ## Dev Container
 
-The repository includes a standard devcontainer setup in `.devcontainer/`.
+The repository includes a cuda-oxide devcontainer in `cuda-oxide/.devcontainer/`.
 Using it is the quickest way to get a reproducible development environment with
 CUDA Toolkit 13.0, LLVM 21, Clang 21, and the pinned Rust nightly already
 installed.
@@ -41,22 +41,26 @@ The host does not need the CUDA Toolkit installed. It does need:
 - an NVIDIA driver compatible with CUDA 13.0 (R580 or newer)
 - Docker with the NVIDIA Container Toolkit installed
 
-With a devcontainer-aware editor, open the repository and choose "Reopen in
-Container" when prompted. The editor reads `.devcontainer/devcontainer.json`,
-builds the image, requests GPU access with `--gpus=all`, and opens the checkout
-inside the container.
+With a devcontainer-aware editor, open the checkout's `cuda-oxide/` folder
+and choose "Reopen in Container". The editor reads its `.devcontainer/devcontainer.json`,
+builds the image, and requests GPU access with `--gpus=all`. The container
+mounts the whole repository so the shared host crates remain available,
+and opens `/workspaces/cuda-rust/cuda-oxide`.
 
-For CLI-only usage, start the container with:
+For CLI-only usage, run from the repository root:
 
 ```bash
-npx -y @devcontainers/cli up --workspace-folder .
+npx -y @devcontainers/cli up --workspace-folder ./cuda-oxide \
+  --config ./cuda-oxide/.devcontainer/devcontainer.json
 ```
 
 Then run commands inside it with:
 
 ```bash
-npx -y @devcontainers/cli exec --workspace-folder . cargo oxide doctor
-npx -y @devcontainers/cli exec --workspace-folder . cargo oxide run vecadd
+npx -y @devcontainers/cli exec --workspace-folder ./cuda-oxide \
+  --config ./cuda-oxide/.devcontainer/devcontainer.json cargo oxide doctor
+npx -y @devcontainers/cli exec --workspace-folder ./cuda-oxide \
+  --config ./cuda-oxide/.devcontainer/devcontainer.json cargo oxide run vecadd
 ```
 
 If the host driver is too old, GPU commands such as `nvidia-smi`,
@@ -71,14 +75,15 @@ Rust setup sections below.
 
 ## Nix / flake.nix
 
-The repository also ships a `flake.nix` providing a reproducible dev shell
+The repository also ships `cuda-oxide/flake.nix`, providing a reproducible dev shell
 (CUDA 13, LLVM 22, Clang, pinned Rust nightly). Requires
 [Nix](https://nixos.org/download/) with flakes enabled, an NVIDIA driver on
 the host, and Linux (x86\_64 or aarch64).
 
-Inside the cuda-oxide repo — `cargo-oxide` is included in the shell:
+From the repository root, enter the cuda-oxide workspace; `cargo-oxide` is included in the shell:
 
 ```bash
+cd cuda-oxide
 nix develop
 cargo oxide run vecadd
 ```
@@ -86,7 +91,7 @@ cargo oxide run vecadd
 To bootstrap a new project without cloning:
 
 ```bash
-nix run github:NVlabs/cuda-oxide#new my-project
+nix run 'github:NVIDIA/cuda-rust?dir=cuda-oxide#new' -- my-project
 cd my-project && nix develop
 ```
 
@@ -99,7 +104,7 @@ To add the same development environment to an existing project, run inside
 that project:
 
 ```bash
-nix flake init -t github:NVIDIA/cuda-rust
+nix flake init -t 'github:NVIDIA/cuda-rust?dir=cuda-oxide'
 nix develop
 ```
 

@@ -10,7 +10,7 @@
 # CUDA_HOME / cublasLt changes.
 #
 # Picks the CUDA toolkit in this priority order:
-#   1. $CUDA_HOME            (set by the harness `nix develop path:.`)
+#   1. $CUDA_HOME            (set by the cuda-oxide `nix develop`)
 #   2. $CUDA_PATH            (alternative env var some toolchains use)
 #   3. /usr/local/cuda       (system install)
 #
@@ -27,7 +27,7 @@ cuda_root="${CUDA_HOME:-${CUDA_PATH:-/usr/local/cuda}}"
 if [[ ! -d "$cuda_root" ]]; then
     echo "error: CUDA toolkit not found." >&2
     echo "  tried CUDA_HOME=${CUDA_HOME:-<unset>}, CUDA_PATH=${CUDA_PATH:-<unset>}, /usr/local/cuda" >&2
-    echo "  set CUDA_HOME to your CTK install (in the harness `nix develop path:.` shell this is automatic)." >&2
+    echo "  set CUDA_HOME to your CTK install (in the cuda-oxide `nix develop` shell this is automatic)." >&2
     exit 1
 fi
 

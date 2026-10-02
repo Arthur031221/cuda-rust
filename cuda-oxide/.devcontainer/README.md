@@ -12,15 +12,36 @@ This dev container provides the toolchain expected by cuda-oxide:
   `cuda-oxide/rust-toolchain.toml` names it. The image ships LLVM 21 and
   `CUDA_OXIDE_LLC` already points at `llc-21`, so nothing waits on it.
 
-Open the repository in a devcontainer-aware editor and choose "Reopen in
-Container". The container requests GPU access with `--gpus=all` and uses
+Open the repository's `cuda-oxide/` folder in a devcontainer-aware editor and
+choose "Reopen in Container". For example, run `code cuda-oxide` from the
+repository root. The editor discovers `cuda-oxide/.devcontainer/devcontainer.json`.
+The container requests GPU access with `--gpus=all` and uses
 `updateRemoteUserUID` so generated Cargo artifacts and exported PTX files stay
 writable from the host checkout.
 
-Inside the container:
+The whole repository is mounted at `/workspaces/cuda-rust`, including the shared
+host crates next to `cuda-oxide/`. The editor and commands start in
+`/workspaces/cuda-rust/cuda-oxide`. The checkout directory on the host can have
+any name. The Docker build context is only `.devcontainer/`; repository files
+are mounted when the container starts, rather than copied into the image.
+
+For CLI usage, run these commands from the repository root:
 
 ```bash
-cd cuda-oxide
+npx -y @devcontainers/cli up \
+  --workspace-folder ./cuda-oxide \
+  --config ./cuda-oxide/.devcontainer/devcontainer.json
+npx -y @devcontainers/cli exec \
+  --workspace-folder ./cuda-oxide \
+  --config ./cuda-oxide/.devcontainer/devcontainer.json cargo oxide doctor
+npx -y @devcontainers/cli exec \
+  --workspace-folder ./cuda-oxide \
+  --config ./cuda-oxide/.devcontainer/devcontainer.json cargo oxide run vecadd
+```
+
+Inside an editor terminal in the container, run:
+
+```bash
 cargo oxide doctor
 cargo oxide run vecadd
 ```

@@ -18,6 +18,7 @@
 
   outputs =
     {
+      self,
       nixpkgs,
       flake-utils,
       rust-overlay,
@@ -27,7 +28,18 @@
     let
       # Use the same source-backed template for `nix flake init` and #new.
       # Template initialization copies this directory without building it.
-      templateSrc = ./cuda-oxide/nix/templates/default;
+      templateSrc = ./nix/templates/default;
+
+      # A Git flake selected with ?dir=cuda-oxide retains the whole repository.
+      # self.outPath is only the flake directory; sourceInfo keeps its siblings.
+      repositorySrc =
+        let
+          src = self.sourceInfo.outPath;
+        in
+        if builtins.pathExists (src + "/cuda-oxide/Cargo.toml") then
+          src
+        else
+          throw "The Oxide flake needs the full cuda-rust tree. Use ./cuda-oxide from a Git checkout, or path:.?dir=cuda-oxide from the repository root.";
     in
     (flake-utils.lib.eachSystem [ "x86_64-linux" "aarch64-linux" ] (
       system:
@@ -44,7 +56,7 @@
         llvmPkgs = pkgs.llvmPackages_22;
 
         # Nightly Rust
-        rustToolchain = pkgs.rust-bin.fromRustupToolchainFile ./cuda-oxide/rust-toolchain.toml;
+        rustToolchain = pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
 
         # cuda
         cudaSymlinked = pkgs.symlinkJoin {
@@ -81,9 +93,9 @@
         cargoOxideCommonArgs = {
           # Keep the shared host crates alongside the Oxide workspace so its
           # sibling path dependencies remain available during Cargo resolution.
-          src = ./.;
+          src = repositorySrc;
           # Isolate the lockfile so source edits do not invalidate the deps cache.
-          cargoLock = builtins.toFile "Cargo.lock" (builtins.readFile ./cuda-oxide/Cargo.lock);
+          cargoLock = builtins.toFile "Cargo.lock" (builtins.readFile ./Cargo.lock);
           # Both the dependency cache and final package must build from Oxide.
           # Crane's prePatch hook also installs cargoLock here in the dummy tree.
           postUnpack = ''
@@ -102,7 +114,7 @@
         };
 
         cargoOxideDeps = craneLib.buildDepsOnly (
-          craneLib.crateNameFromCargoToml { cargoToml = ./cuda-oxide/crates/cargo-oxide/Cargo.toml; }
+          craneLib.crateNameFromCargoToml { cargoToml = ./crates/cargo-oxide/Cargo.toml; }
           // cargoOxideCommonArgs
         );
 
@@ -142,7 +154,7 @@
         # still builds librustc_codegen_cuda.so on first use and caches it
         # outside the Nix store, so this derivation is not fully pure yet.
         cargo-oxide = craneLib.buildPackage (
-          craneLib.crateNameFromCargoToml { cargoToml = ./cuda-oxide/crates/cargo-oxide/Cargo.toml; }
+          craneLib.crateNameFromCargoToml { cargoToml = ./crates/cargo-oxide/Cargo.toml; }
           // cargoOxideCommonArgs
           // {
             cargoArtifacts = cargoOxideDeps;

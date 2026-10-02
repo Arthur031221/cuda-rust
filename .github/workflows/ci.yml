@@ -15,9 +15,6 @@ on:
       - 'cuda-async/**'
       - 'Cargo.toml'
       - 'Cargo.lock'
-      - 'clippy.toml'
-      - 'flake.nix'
-      - 'flake.lock'
       - '.github/workflows/**'
   pull_request:
     branches: [main]
@@ -29,9 +26,6 @@ on:
       - 'cuda-async/**'
       - 'Cargo.toml'
       - 'Cargo.lock'
-      - 'clippy.toml'
-      - 'flake.nix'
-      - 'flake.lock'
       - '.github/workflows/**'
 
 concurrency:

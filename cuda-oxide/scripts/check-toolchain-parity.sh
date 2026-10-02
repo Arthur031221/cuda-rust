@@ -51,7 +51,7 @@ cd "$(dirname "$0")/.."
 
 ROOT_PIN=rust-toolchain.toml
 SCAFFOLD=crates/cargo-oxide/src/commands/scaffold.rs
-DEVCONTAINER=../.devcontainer/devcontainer.json
+DEVCONTAINER=.devcontainer/devcontainer.json
 
 if ! command -v python3 >/dev/null 2>&1; then
     echo "error: python3 is required to verify the toolchain pin" >&2

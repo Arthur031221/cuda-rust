@@ -40,11 +40,13 @@ the accepted final measurements are recorded in `../README.md`.
 The packaged `build.sh` figures out CUDA paths (honoring `CUDA_HOME` /
 `CUDA_PATH`, then falling back to `/usr/local/cuda`) and rpath-pins the
 toolkit libraries ahead of any unrelated CUDA installation inherited through
-`LD_LIBRARY_PATH`. Enter `nix develop path:.` at the repository root; a system
-CTK also needs a compatible driver library on its runtime path:
+`LD_LIBRARY_PATH`. Enter the cuda-oxide Nix shell from the repository root;
+a system CTK also needs a compatible driver library on its runtime path:
 
 ```bash
-cd bench/
+cd cuda-oxide
+nix develop
+cd crates/rustc-codegen-cuda/examples/gemm_sol_final/bench
 bash build.sh
 ./cublaslt_bench
 ```
