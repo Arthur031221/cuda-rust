@@ -17,6 +17,8 @@
     // rust-analyzer reports "Failed to load workspaces".
     "rust-analyzer.linkedProjects": [
         "./Cargo.toml",
+        "./cuda-oxide/Cargo.toml",
+        "./cutile-rs/Cargo.toml",
         "./cuda-oxide/crates/rustc-codegen-cuda/Cargo.toml",
         "./cuda-oxide/crates/rustc-codegen-cuda/examples/debug_pointer_locals/Cargo.toml",
         "./cuda-oxide/crates/rustc-codegen-cuda/examples/gemm_sol_final/Cargo.toml",

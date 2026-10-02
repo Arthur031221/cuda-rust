@@ -85,7 +85,7 @@
         llvmPkgs = pkgs.llvmPackages_22;
 
         # Nightly Rust
-        rustToolchain = pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
+        rustToolchain = pkgs.rust-bin.fromRustupToolchainFile ./cuda-oxide/rust-toolchain.toml;
 
         # cuda
         cudaSymlinked = pkgs.symlinkJoin {
@@ -120,8 +120,17 @@
         craneLib = (crane.mkLib pkgs).overrideToolchain rustToolchain;
 
         cargoOxideCommonArgs = {
+          # Keep the shared host crates alongside the Oxide workspace so its
+          # sibling path dependencies remain available during Cargo resolution.
           src = ./.;
-          cargoExtraArgs = "-p cargo-oxide";
+          # Isolate the lockfile so source edits do not invalidate the deps cache.
+          cargoLock = builtins.toFile "Cargo.lock" (builtins.readFile ./cuda-oxide/Cargo.lock);
+          # Both the dependency cache and final package must build from Oxide.
+          # Crane's prePatch hook also installs cargoLock here in the dummy tree.
+          postUnpack = ''
+            sourceRoot="$sourceRoot/cuda-oxide"
+          '';
+          cargoExtraArgs = "--locked -p cargo-oxide";
           doCheck = false;
 
           nativeBuildInputs = [
