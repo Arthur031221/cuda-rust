@@ -62,6 +62,7 @@ jobs:
               - 'cuda-async/**'
               - 'Cargo.toml'
               - 'Cargo.lock'
+              - 'rust-toolchain.toml'
               - '.github/workflows/cutile-rs.yml'
               - '.github/copy-pr-bot.yaml'
 
@@ -158,8 +159,10 @@ jobs:
 
       - name: Clippy (host crates)
         working-directory: ${{ github.workspace }}
-        run: cargo clippy -p cuda-bindings -p cuda-core -p cuda-core-derive -p cuda-async \
-            --all-targets --all-features
+        # One line: a plain YAML scalar turns `\` into a literal backslash, so
+        # cargo saw ` --all-targets` as one argument. Skip --all-features here;
+        # cuda-core's f16 feature is nightly-only and reactor-verification covers it.
+        run: cargo clippy -p cuda-bindings -p cuda-core -p cuda-core-derive -p cuda-async --all-targets
 
       - name: TileIR toolchain smoke test
         run: cargo test -p cutile-ir --test bytecode_validate simple_arithmetic -- --exact --nocapture
@@ -238,7 +241,8 @@ jobs:
         run: cargo check -p cuda-bindings -p cuda-core -p cuda-async --all-targets
 
   # Nightly also covers cuda-core's optional native f16 support. The remaining
-  # jobs use stable from rust-toolchain.toml.
+  # jobs use stable: cutile-rs/rust-toolchain.toml inside this tree, and the
+  # git-root rust-toolchain.toml for the host-crate steps.
   # Model-checks / sanitizers for the cuda-async completion reactor's lock-free
   # slot protocol. CPU-only, no GPU: loom explores the interleavings and weak-
   # memory outcomes, miri checks the UnsafeCell/pointer UB, ThreadSanitizer
