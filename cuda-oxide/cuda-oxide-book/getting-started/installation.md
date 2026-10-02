@@ -95,6 +95,14 @@ this repo's dev shell. The shellHook auto-discovers host NVIDIA driver
 libraries on NixOS and non-NixOS systems; if the host driver is too old,
 update it rather than changing what's inside the Nix shell.
 
+To add the same development environment to an existing project, run inside
+that project:
+
+```bash
+nix flake init -t github:NVIDIA/cuda-rust
+nix develop
+```
+
 If you use the Nix flake, you can skip the manual CUDA, LLVM, Clang, and
 Rust setup sections below.
 

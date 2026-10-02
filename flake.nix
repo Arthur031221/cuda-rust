@@ -25,50 +25,9 @@
       ...
     }:
     let
-      # Template flake for user projects. Extends cuda-oxide's devShell via
-      # inputsFrom so users can add their own packages while inheriting the full
-      # CUDA + Rust environment (including the shellHook that wires up the host
-      # NVIDIA driver). nixpkgs and flake-utils are followed from cuda-oxide to
-      # avoid duplicate closures.
-      userFlakeContent = ''
-        {
-          description = "A cuda-oxide project";
-
-          inputs = {
-            cuda-oxide.url = "github:NVlabs/cuda-oxide";
-            nixpkgs.follows = "cuda-oxide/nixpkgs";
-            flake-utils.follows = "cuda-oxide/flake-utils";
-          };
-
-          outputs =
-            {
-              cuda-oxide,
-              nixpkgs,
-              flake-utils,
-              ...
-            }:
-            flake-utils.lib.eachSystem [ "x86_64-linux" "aarch64-linux" ] (
-              system:
-              let
-                pkgs = nixpkgs.legacyPackages.''${system};
-              in
-              {
-                devShells.default = pkgs.mkShell {
-                  inputsFrom = [ cuda-oxide.devShells.''${system}.default ];
-                  packages = [
-                    # add project-specific packages here
-                  ];
-                };
-              }
-            );
-        }
-      '';
-
-      userFlake = builtins.toFile "flake.nix" userFlakeContent;
-
-      # Directory used by `nix flake init -t github:NVlabs/cuda-oxide`.
-      # Content is system-independent; x86_64-linux is chosen arbitrarily.
-      templateSrc = nixpkgs.legacyPackages.x86_64-linux.writeTextDir "flake.nix" userFlakeContent;
+      # Use the same source-backed template for `nix flake init` and #new.
+      # Template initialization copies this directory without building it.
+      templateSrc = ./cuda-oxide/nix/templates/default;
     in
     (flake-utils.lib.eachSystem [ "x86_64-linux" "aarch64-linux" ] (
       system:
@@ -169,7 +128,7 @@
             output=$(cargo-oxide new "$@")
 
             if [ -n "$project" ] && [ -d "$project" ]; then
-              cp ${userFlake} "$project/flake.nix"
+              cp ${templateSrc}/flake.nix "$project/flake.nix"
               chmod +w "$project/flake.nix"
             fi
 
