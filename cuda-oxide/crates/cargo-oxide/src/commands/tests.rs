@@ -4768,9 +4768,9 @@ fn scaffold_sync_template_uses_launch_contract_and_docs() {
     assert!(files.main_rs.contains("prepare_vecadd"));
     assert!(files.main_rs.contains("LaunchConfig1D"));
     assert!(!files.main_rs.contains("LaunchConfig::for_num_elems"));
-    // The host runtime is the crates.io release shared with cutile-rs. A git
-    // pin at this repository would resolve to nothing (the local copies are
-    // retired) or, worse, to a stale copy on an old revision.
+    // The host runtime is the crates.io release of the git-root crates.
+    // In-tree examples path-depend on those crates; a freshly scaffolded
+    // project is not inside this monorepo, so it cannot use those paths.
     assert!(
         files
             .cargo_toml

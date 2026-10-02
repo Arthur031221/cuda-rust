@@ -78,17 +78,15 @@ cuda-host = { path = "crates/cuda-host" }
 # `cuda-host` names `features = ["host"]`, so anything that loads or launches a
 # module still gets it.
 cuda-macros = { path = "crates/cuda-macros", default-features = false }
-# The crates.io release, not the in-tree path, for the same reason as
-# oxide-artifacts below: a path copy of the same version is a second crate to
-# rustc. Every example is its own [workspace] pinned to crates.io 0.3.1 and
-# also depends on cuda-host by path, so a path pin here puts two cuda_core
-# crates in one example graph and `CudaModule` stops unifying. The lifted
-# directories stay workspace members as the source these releases are
-# published from (and what nested cutile-rs path-depends on); bump, publish,
-# then move these lines.
-cuda-bindings = "0.3.1"
-cuda-core = "0.3.1"
-cuda-async = "0.3.1"
+# Git-root host crates. `=` is an exact pin, same as cutile-rs, so a 0.4.1
+# package version does not match until this line is updated with it.
+# Examples path-depend on the same directories so the graph has one
+# cuda_core (and one cuda-async / cuda-bindings). `cargo oxide new` still
+# pins the crates.io version of this line for out-of-tree projects; keep
+# SHARED_HOST_CRATES_VERSION in lockstep (the pin check ignores the `=`).
+cuda-bindings = { path = "../cuda-bindings", version = "=0.4.0" }
+cuda-core = { path = "../cuda-core", version = "=0.4.0" }
+cuda-async = { path = "../cuda-async", version = "=0.4.0" }
 libnvvm-sys = { path = "crates/libnvvm-sys" }
 nvjitlink-sys = { path = "crates/nvjitlink-sys" }
 reserved-oxide-symbols = { path = "crates/reserved-oxide-symbols" }

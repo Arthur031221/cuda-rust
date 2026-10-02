@@ -3,26 +3,20 @@
 # SPDX-License-Identifier: Apache-2.0
 # Verify every copy of the shared host-crate pin agrees with the SIMT workspace.
 #
-# cuda-bindings, cuda-core, and cuda-async come from cutile-rs. CUDA Oxide's
-# `[workspace.dependencies]` names the release once, but that line is copied:
+# cuda-bindings, cuda-core, and cuda-async live at the git root. CUDA Oxide's
+# `[workspace.dependencies]` path-depends on them once, and that pin is copied:
 #
-#   1. Into every example workspace's Cargo.toml (each example is its own
-#      [workspace], so it cannot inherit the root entry). A drifted copy
-#      resolves a second version of the runtime and breaks the shared
-#      example build cache; sync-example-locks.sh catches the lock, this
-#      catches the manifest that produced it.
+#   1. Into every example workspace's Cargo.toml as a path dependency (each
+#      example is its own [workspace], so it cannot inherit the SIMT entry).
+#      A crates.io copy here resolves a second cuda_core and breaks type
+#      unification with path cuda-host.
 #
 #   2. Into the `cargo oxide new` templates (SHARED_HOST_CRATES_VERSION in
-#      crates/cargo-oxide/src/commands/scaffold.rs). That copy never breaks
-#      this repository's CI: a stale one hands each new project a runtime
-#      the generated `#[cuda_module]` code was not written against, and the
-#      failure surfaces on the user's machine.
+#      crates/cargo-oxide/src/commands/scaffold.rs) as the crates.io version
+#      of the same pin. Out-of-tree projects cannot use the git-root paths.
 #
-# The pin may be a crates.io version (`"0.3.1"`, `{ version = "0.3.1", ... }`)
-# or, between a cutile-rs tag and its crates.io release, a git tag
-# (`{ git = ".../cutile-rs", tag = "v0.3.1" }`). Both spell the same version,
-# so the comparison is on the version string, and every manifest must also
-# use the same *form* as CUDA Oxide (all git, or all registry).
+# In-tree manifests must use the same form as CUDA Oxide (path). The scaffold
+# stays on the registry form; only its version string must match.
 set -euo pipefail
 export LC_ALL=C
 cd "$(dirname "$0")/.."
@@ -30,22 +24,25 @@ GIT_ROOT="$(git rev-parse --show-toplevel)"
 
 ROOT="${GIT_ROOT}/cuda-oxide/Cargo.toml"
 SCAFFOLD=crates/cargo-oxide/src/commands/scaffold.rs
-CRATES='cuda-(bindings|core|async)'
 
 # `spec_of FILE CRATE` prints "<form> <version>" for the crate's dependency
 # line in FILE, or nothing if the file does not name the crate.
 spec_of() {
-    local file="$1" crate="$2" line
+    local file="$1" crate="$2" line version
     line="$(grep -E "^${crate}[[:space:]]*=" "${file}" | head -1 || true)"
     [ -n "${line}" ] || return 0
-    if [[ "${line}" =~ tag[[:space:]]*=[[:space:]]*\"v([0-9][^\"]*)\" ]]; then
-        echo "git ${BASH_REMATCH[1]}"
-    elif [[ "${line}" =~ version[[:space:]]*=[[:space:]]*\"([^\"]*)\" ]]; then
-        echo "registry ${BASH_REMATCH[1]}"
+    version="?"
+    if [[ "${line}" =~ version[[:space:]]*=[[:space:]]*\"=?([0-9][^\"]*)\" ]]; then
+        version="${BASH_REMATCH[1]}"
     elif [[ "${line}" =~ ^${crate}[[:space:]]*=[[:space:]]*\"([^\"]*)\" ]]; then
-        echo "registry ${BASH_REMATCH[1]}"
+        version="${BASH_REMATCH[1]}"
+    fi
+    if [[ "${line}" =~ path[[:space:]]*= ]]; then
+        echo "path ${version}"
+    elif [[ "${line}" =~ tag[[:space:]]*=[[:space:]]*\"v([0-9][^\"]*)\" ]]; then
+        echo "git ${BASH_REMATCH[1]}"
     else
-        echo "unknown ?"
+        echo "registry ${version}"
     fi
 }
 
@@ -62,23 +59,24 @@ for crate in cuda-bindings cuda-async; do
     fi
 done
 
-# 1. Example manifests (nested member crates included).
+# 1. Example manifests (nested member crates included). Must match the
+# in-tree path pin, not the scaffold's crates.io form.
 while IFS= read -r manifest; do
     for crate in cuda-bindings cuda-core cuda-async; do
-        # `cutile-cuda-core = { ..., package = "cuda-core" }` is a renamed
-        # dependency on the same crate; match it through its package key.
         while IFS= read -r line; do
             [ -n "${line}" ] || continue
-            if [[ "${line}" =~ tag[[:space:]]*=[[:space:]]*\"v([0-9][^\"]*)\" ]]; then
-                form=git; version="${BASH_REMATCH[1]}"
-            elif [[ "${line}" =~ version[[:space:]]*=[[:space:]]*\"([^\"]*)\" ]]; then
-                form=registry; version="${BASH_REMATCH[1]}"
+            version="?"
+            if [[ "${line}" =~ version[[:space:]]*=[[:space:]]*\"=?([0-9][^\"]*)\" ]]; then
+                version="${BASH_REMATCH[1]}"
             elif [[ "${line}" =~ =[[:space:]]*\"([^\"]*)\"[[:space:]]*$ ]]; then
-                form=registry; version="${BASH_REMATCH[1]}"
-            elif [[ "${line}" =~ path[[:space:]]*= ]]; then
-                form=path; version="?"
+                version="${BASH_REMATCH[1]}"
+            fi
+            if [[ "${line}" =~ path[[:space:]]*= ]]; then
+                form=path
+            elif [[ "${line}" =~ tag[[:space:]]*=[[:space:]]*\"v([0-9][^\"]*)\" ]]; then
+                form=git; version="${BASH_REMATCH[1]}"
             else
-                form=unknown; version="?"
+                form=registry
             fi
             if [ "${form} ${version}" != "${root_spec}" ]; then
                 echo "error: ${manifest}: '${line}' (want ${root_spec})" >&2; status=1
@@ -91,7 +89,7 @@ done < <(git -C "${GIT_ROOT}" ls-files \
     'cuda-oxide/crates/rustc-codegen-cuda/examples/*/*/*/Cargo.toml' \
     | while read -r manifest; do echo "${GIT_ROOT}/${manifest}"; done)
 
-# 2. The scaffold constant.
+# 2. The scaffold constant (crates.io form of the same version).
 scaffold_version="$(sed -n -E 's/^pub\(super\) const SHARED_HOST_CRATES_VERSION: &str = "([^"]+)";/\1/p' "${SCAFFOLD}")"
 if [ -z "${scaffold_version}" ]; then
     echo "error: ${SCAFFOLD}: SHARED_HOST_CRATES_VERSION not found" >&2; status=1

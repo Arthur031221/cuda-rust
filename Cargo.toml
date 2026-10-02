@@ -9,3 +9,10 @@ members = [
     "cuda-core-derive",
     "cuda-async",
 ]
+# Nested workspaces. Without these, Cargo treats crates under them as part of
+# this workspace and `edition.workspace = true` in cuda-device (etc.) looks at
+# this manifest, which has no [workspace.package].
+exclude = [
+    "cuda-oxide",
+    "cutile-rs",
+]

@@ -53,14 +53,6 @@ jobs:
       - name: Clone repository
         uses: actions/checkout@v4
 
-      # Oxide example compile never reads the imported cutile-rs tree, but the
-      # checkout shares the GitHub-hosted runner's ~14 GB disk with the CUDA
-      # toolkit, LLVM, cargo-oxide, and ~200 example workspaces. Leaving
-      # cutile-rs in place fills that disk mid-smoketest: later examples then
-      # fail rebuilding rustc-codegen-cuda with ENOSPC / ld bus errors.
-      - name: Drop cutile-rs from this job's workspace
-        run: rm -rf cutile-rs
-
       # Every example workspace must pin the same dependency versions. The
       # shared CARGO_TARGET_DIR below keys build caches on the resolved
       # dependency subtree, so one drifted Cargo.lock silently costs a full
@@ -128,8 +120,12 @@ jobs:
           # the backend .so at its fixed discovery path.
           CARGO_TARGET_DIR: ${{ runner.temp }}/examples-shared-target
           SMOKETEST_LOG_DIR: ${{ runner.temp }}/smoketest-logs
-          # rustc incremental dirs under rustc-codegen-cuda/target/ are what
-          # filled the runner once cutile-rs was in the checkout.
+          # The runner's ~14 GB disk also holds the CUDA toolkit, LLVM,
+          # cargo-oxide, and ~200 example workspaces; rustc incremental dirs
+          # under rustc-codegen-cuda/target/ are what used to fill it and fail
+          # later examples with ENOSPC / ld bus errors. The cutile-rs source
+          # tree itself is a few MB and must stay: cutile_inter_kernel
+          # path-depends on cutile-rs/cutile and cutile-rs/cutile-compiler.
           CARGO_INCREMENTAL: "0"
         run: |
           set -euo pipefail
