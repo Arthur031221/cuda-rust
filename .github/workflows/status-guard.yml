@@ -128,7 +128,7 @@ jobs:
       - name: Clone repository
         uses: actions/checkout@v4
 
-      # rustfmt comes from rust-toolchain.toml's component list through the
+# rustfmt comes from cuda-oxide/rust-toolchain.toml's component list through the
       # rustup proxy, as in fmt.yml, so the order checked is the pinned
       # nightly's. No cargo, no CUDA toolkit, no network beyond the toolchain.
       - name: Verify the book's Rust blocks use rustfmt's import order

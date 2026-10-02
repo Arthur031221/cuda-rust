@@ -111,9 +111,10 @@ use crate::backend_source::{self, DependencySource};
 
 /// Finds the workspace root by walking up from CWD.
 ///
-/// Supports both the historical single-product layout and the combined
-/// repository, where the root `Cargo.toml` owns members under
-/// `cuda-oxide/crates/`.
+/// Supports the component workspace (`crates/rustc-codegen-cuda`) and the
+/// historical combined layout (`cuda-oxide/crates/rustc-codegen-cuda`).
+/// Starting below `cuda-oxide/` finds the component root before the stable
+/// parent workspace.
 pub fn find_workspace_root() -> Option<PathBuf> {
     let mut dir = std::env::current_dir().ok()?;
     loop {
@@ -2331,12 +2332,13 @@ mod tests {
         assert!(report.contains("CUDA_OXIDE_BACKEND"), "{report}");
     }
 
-    // A moved dependency must still use the toolchain pin at the repository root.
+    // Both dependency resolution and the fallback main clone must use the
+    // backend's pin, even when the monorepo's host workspace uses stable.
     #[test]
     fn dependency_toolchain_guard_supports_flat_and_nested_checkouts() {
         let rev = "728539f652ba107800fa13d0c31675f6c11aab9c";
         let git_source = format!("git+https://github.com/NVIDIA/cuda-rust.git#{rev}");
-        for nested in [false, true] {
+        for (nested, component_workspace) in [(false, false), (true, false), (true, true)] {
             let root = tempdir();
             std::fs::write(root.join("Cargo.toml"), "[workspace]\n").unwrap();
             std::fs::write(
@@ -2349,6 +2351,20 @@ mod tests {
             } else {
                 root.clone()
             };
+            if component_workspace {
+                std::fs::create_dir_all(&simt_root).unwrap();
+                std::fs::write(simt_root.join("Cargo.toml"), "[workspace]\n").unwrap();
+                std::fs::rename(
+                    root.join("rust-toolchain.toml"),
+                    simt_root.join("rust-toolchain.toml"),
+                )
+                .unwrap();
+                std::fs::write(
+                    root.join("rust-toolchain.toml"),
+                    "[toolchain]\nchannel = \"1.98.0\"\n",
+                )
+                .unwrap();
+            }
             let codegen = simt_root.join(CODEGEN_CRATE_SUBDIR);
             let device = simt_root.join("crates/cuda-device");
             for (directory, name) in [(&codegen, "rustc_codegen_cuda"), (&device, "cuda-device")] {
@@ -2359,9 +2375,31 @@ mod tests {
                 )
                 .unwrap();
             }
-            if nested {
+            if nested && !component_workspace {
                 assert!(!simt_root.join("Cargo.toml").exists());
             }
+
+            // auto_fetch_and_build passes the git root, without dependency
+            // metadata to identify the component workspace first.
+            let fallback_channel = backend_source::pinned_channel(&root);
+            assert_eq!(fallback_channel.as_deref(), Some("nightly-2026-08-28"));
+            assert_eq!(
+                unloadable_backend_report(
+                    "the cuda-oxide main clone",
+                    Some("nightly-2026-08-28-x86_64-unknown-linux-gnu"),
+                    fallback_channel.as_deref(),
+                ),
+                None
+            );
+            assert!(
+                unloadable_backend_report(
+                    "the cuda-oxide main clone",
+                    Some("1.98.0-x86_64-unknown-linux-gnu"),
+                    fallback_channel.as_deref(),
+                )
+                .expect("the stable host toolchain cannot load the nightly backend")
+                .contains("needs Rust `nightly-2026-08-28`")
+            );
 
             for (package_source, marker) in [
                 (None, None),
@@ -2381,7 +2419,14 @@ mod tests {
                 let resolved = backend_source::dependency_source_from_metadata(&metadata)
                     .unwrap()
                     .unwrap();
-                assert_eq!(resolved.checkout(), root);
+                assert_eq!(
+                    resolved.checkout(),
+                    if component_workspace {
+                        &simt_root
+                    } else {
+                        &root
+                    }
+                );
                 assert_eq!(resolved.codegen_crate(), codegen);
                 assert_eq!(resolved.rev(), package_source.map(|_| rev));
                 let channel = backend_source::pinned_channel(resolved.checkout());

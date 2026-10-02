@@ -16,19 +16,33 @@ use super::*;
 
 /// Format (or check formatting of) every scope the `fmt` CI gate checks.
 ///
-/// `.github/workflows/fmt.yml` checks four: the root workspace, the codegen
-/// backend crate, the cuda-macros device-only fixture, and every `Cargo.toml`
-/// under `examples/`, nested ones included. This mirrors that set on purpose --
-/// the reason CONTRIBUTING tells contributors to prefer this command over a
-/// bare `cargo fmt` is so the gate cannot fail on code they had no way to
-/// format, which only holds while the two cover the same ground.
+/// `.github/workflows/fmt.yml` checks five: the stable shared-host workspace,
+/// the SIMT workspace, the codegen backend crate, the cuda-macros device-only
+/// fixture, and every `Cargo.toml` under `examples/`, nested ones included.
+/// This mirrors that set on purpose -- the reason CONTRIBUTING tells
+/// contributors to prefer this command over a bare `cargo fmt` is so the gate
+/// cannot fail on code they had no way to format, which only holds while the
+/// two cover the same ground.
 ///
 /// In `check` mode, reports which files need formatting without modifying them.
 pub fn format_all(ctx: &Context, check: bool) {
     let mode = if check { "Checking" } else { "Formatting" };
     let mut failed = false;
 
-    println!("📦 {} root workspace...", mode);
+    // In the merged repository, shared host crates live in the stable parent
+    // workspace. Standalone cuda-oxide checkouts have no such parent manifest.
+    if let Some(shared_root) = ctx
+        .workspace_root
+        .parent()
+        .filter(|root| root.join("Cargo.toml").is_file() && root.join("cuda-core").is_dir())
+    {
+        println!("📦 {} shared host workspace...", mode);
+        if !run_cargo_fmt(shared_root, check) {
+            failed = true;
+        }
+    }
+
+    println!("📦 {} CUDA Oxide workspace...", mode);
     if !run_cargo_fmt(&ctx.workspace_root, check) {
         failed = true;
     }
@@ -107,13 +121,18 @@ fn run_cargo_fmt(dir: &Path, check: bool) -> bool {
     run_fmt_command(cmd)
 }
 
-/// Run `cargo fmt` for one manifest. Returns `true` on success.
+/// Run `cargo fmt` from beside one manifest. Returns `true` on success.
 ///
 /// No `--all`: the caller walks every manifest, so a workspace member is
 /// visited through its own manifest rather than through its parent's.
 fn run_cargo_fmt_manifest(manifest: &Path, check: bool) -> bool {
     let mut cmd = Command::new("cargo");
-    cmd.arg("fmt").arg("--manifest-path").arg(manifest);
+    cmd.arg("fmt");
+    if let Some(dir) = manifest.parent() {
+        // rustup selects from the working directory, not --manifest-path.
+        // This is required for examples using nightly-only Cargo features.
+        cmd.current_dir(dir);
+    }
 
     if check {
         cmd.arg("--check");

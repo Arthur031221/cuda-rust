@@ -18,6 +18,7 @@
 
   outputs =
     {
+      self,
       nixpkgs,
       flake-utils,
       rust-overlay,
@@ -25,50 +26,20 @@
       ...
     }:
     let
-      # Template flake for user projects. Extends cuda-oxide's devShell via
-      # inputsFrom so users can add their own packages while inheriting the full
-      # CUDA + Rust environment (including the shellHook that wires up the host
-      # NVIDIA driver). nixpkgs and flake-utils are followed from cuda-oxide to
-      # avoid duplicate closures.
-      userFlakeContent = ''
-        {
-          description = "A cuda-oxide project";
+      # Use the same source-backed template for `nix flake init` and #new.
+      # Template initialization copies this directory without building it.
+      templateSrc = ./nix/templates/default;
 
-          inputs = {
-            cuda-oxide.url = "github:NVlabs/cuda-oxide";
-            nixpkgs.follows = "cuda-oxide/nixpkgs";
-            flake-utils.follows = "cuda-oxide/flake-utils";
-          };
-
-          outputs =
-            {
-              cuda-oxide,
-              nixpkgs,
-              flake-utils,
-              ...
-            }:
-            flake-utils.lib.eachSystem [ "x86_64-linux" "aarch64-linux" ] (
-              system:
-              let
-                pkgs = nixpkgs.legacyPackages.''${system};
-              in
-              {
-                devShells.default = pkgs.mkShell {
-                  inputsFrom = [ cuda-oxide.devShells.''${system}.default ];
-                  packages = [
-                    # add project-specific packages here
-                  ];
-                };
-              }
-            );
-        }
-      '';
-
-      userFlake = builtins.toFile "flake.nix" userFlakeContent;
-
-      # Directory used by `nix flake init -t github:NVlabs/cuda-oxide`.
-      # Content is system-independent; x86_64-linux is chosen arbitrarily.
-      templateSrc = nixpkgs.legacyPackages.x86_64-linux.writeTextDir "flake.nix" userFlakeContent;
+      # A Git flake selected with ?dir=cuda-oxide retains the whole repository.
+      # self.outPath is only the flake directory; sourceInfo keeps its siblings.
+      repositorySrc =
+        let
+          src = self.sourceInfo.outPath;
+        in
+        if builtins.pathExists (src + "/cuda-oxide/Cargo.toml") then
+          src
+        else
+          throw "The Oxide flake needs the full cuda-rust tree. Use ./cuda-oxide from a Git checkout, or path:.?dir=cuda-oxide from the repository root.";
     in
     (flake-utils.lib.eachSystem [ "x86_64-linux" "aarch64-linux" ] (
       system:
@@ -120,8 +91,17 @@
         craneLib = (crane.mkLib pkgs).overrideToolchain rustToolchain;
 
         cargoOxideCommonArgs = {
-          src = ./.;
-          cargoExtraArgs = "-p cargo-oxide";
+          # Keep the shared host crates alongside the Oxide workspace so its
+          # sibling path dependencies remain available during Cargo resolution.
+          src = repositorySrc;
+          # Isolate the lockfile so source edits do not invalidate the deps cache.
+          cargoLock = builtins.toFile "Cargo.lock" (builtins.readFile ./Cargo.lock);
+          # Both the dependency cache and final package must build from Oxide.
+          # Crane's prePatch hook also installs cargoLock here in the dummy tree.
+          postUnpack = ''
+            sourceRoot="$sourceRoot/cuda-oxide"
+          '';
+          cargoExtraArgs = "--locked -p cargo-oxide";
           doCheck = false;
 
           nativeBuildInputs = [
@@ -134,7 +114,7 @@
         };
 
         cargoOxideDeps = craneLib.buildDepsOnly (
-          craneLib.crateNameFromCargoToml { cargoToml = ./cuda-oxide/crates/cargo-oxide/Cargo.toml; }
+          craneLib.crateNameFromCargoToml { cargoToml = ./crates/cargo-oxide/Cargo.toml; }
           // cargoOxideCommonArgs
         );
 
@@ -160,7 +140,7 @@
             output=$(cargo-oxide new "$@")
 
             if [ -n "$project" ] && [ -d "$project" ]; then
-              cp ${userFlake} "$project/flake.nix"
+              cp ${templateSrc}/flake.nix "$project/flake.nix"
               chmod +w "$project/flake.nix"
             fi
 
@@ -174,7 +154,7 @@
         # still builds librustc_codegen_cuda.so on first use and caches it
         # outside the Nix store, so this derivation is not fully pure yet.
         cargo-oxide = craneLib.buildPackage (
-          craneLib.crateNameFromCargoToml { cargoToml = ./cuda-oxide/crates/cargo-oxide/Cargo.toml; }
+          craneLib.crateNameFromCargoToml { cargoToml = ./crates/cargo-oxide/Cargo.toml; }
           // cargoOxideCommonArgs
           // {
             cargoArtifacts = cargoOxideDeps;

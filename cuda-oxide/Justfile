@@ -7,7 +7,7 @@ set windows-shell := ["powershell.exe", "-NoLogo", "-Command"]
 # Use Bash on Unix
 set shell := ["bash", "-c"]
 
-# Format all Rust code (root, codegen, examples)
+# Format all Rust code (SIMT workspace, codegen, examples)
 fmt:
     cargo oxide fmt
 
@@ -17,18 +17,18 @@ fmt-check:
 
 # Lint every scope CI's clippy job lints, minus the per-example pass.
 #
-# CI runs clippy three times: over the root workspace, over
+# CI runs clippy three times: over the SIMT workspace, over
 # crates/rustc-codegen-cuda (its own [workspace] for the rustc_private dylibs,
-# which `--workspace` from the root cannot reach), and once per example. The
-# first two are here, the root invocation spelled the way CI spells it.
-# (Cargo's target-selection flags are additive and the virtual root workspace
+# which `--workspace` cannot reach), and once per example. The first two are
+# here, with the SIMT invocation spelled the way CI spells it.
+# (Cargo's target-selection flags are additive and the virtual SIMT workspace
 # has no default-members, so the earlier `--all-targets --lib --tests` covered
 # the same members and targets; the spelling was the only difference.)
 #
 # The per-example pass stays CI-only: it is one clippy run per example across
 # 200-odd separate workspaces, which is a CI job rather than something to wait
 # on locally.
-# Run clippy with warnings as errors (root + codegen workspaces)
+# Run clippy with warnings as errors (SIMT + codegen workspaces)
 clippy:
     cargo clippy --workspace --all-targets -- -D warnings
     # Its own [workspace], so `--workspace` above stops at that boundary.
@@ -36,12 +36,12 @@ clippy:
 
 # Fix mode for the recipe above, and it has to cover the same ground: a warning
 # the gate reports in the codegen backend had no `--fix` pass to answer it,
-# because that crate's own [workspace] puts it outside every root invocation.
+# because that crate's own [workspace] puts it outside every SIMT invocation.
 #
-# The root line only changes spelling, to match `clippy` above: target flags are
-# additive and the virtual root workspace has no default-members, so
+# The SIMT line only changes spelling, to match `clippy` above: target flags are
+# additive and the virtual workspace has no default-members, so
 # `--all-targets --lib --tests` already selected the same members and targets.
-# Run clippy and auto-fix warnings (root + codegen workspaces)
+# Run clippy and auto-fix warnings (SIMT + codegen workspaces)
 clippy-fix:
     cargo clippy --workspace --all-targets --fix --allow-dirty --allow-staged
     # Its own [workspace], so `--workspace` above stops at that boundary.
@@ -69,7 +69,7 @@ test:
     # default set alone skips the eight ELF emit/extract tests.
     cargo test -p oxide-artifacts --all-targets --features object
     # Its own [workspace] (rustc-private dylibs), so a separate CI job covers
-    # it and `-p` from the root cannot reach it.
+    # it and `-p` from the SIMT workspace cannot reach it.
     cd crates/rustc-codegen-cuda && cargo test --lib
 
 # The packages CI's matrix marks `needs_cuda`, kept separate so `test` runs on
@@ -117,7 +117,7 @@ doc-check:
     RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --workspace
     cargo test --doc --workspace
     # The docs gate builds this workspace's rustdoc separately too (#725); the
-    # root `--workspace` cannot reach it.
+    # SIMT `--workspace` cannot reach it.
     cd crates/rustc-codegen-cuda && RUSTDOCFLAGS="-D warnings" cargo doc --no-deps
 
 # Run all checks (fmt + clippy + tests + guards + docs). Includes `test-cuda`:
@@ -193,10 +193,12 @@ check-errors:
 # test-matrix coverage),
 # the naming-guard's reserved-prefix search, and all four cargo-deny jobs:
 # `cargo deny check` enforces deny.toml over each non-example `[workspace]`
-# root that resolves third-party crates -- the root workspace,
-# crates/rustc-codegen-cuda, and the cuda-macros device-only fixture, each of
+# root that resolves third-party crates -- the stable host workspace, the SIMT
+# workspace, crates/rustc-codegen-cuda, and the cuda-macros device-only
+# fixture, each of
 # which resolves its own graph because each declares its own `[workspace]`;
-# the license inventory covers what the first two declare; deny.toml holds over the example workspaces; and every first-party
+# the license inventory covers what those workspaces declare; deny.toml holds
+# over the example workspaces; and every first-party
 # source file carries an SPDX header. These were only reachable by reading the
 # workflows, so `just check` could pass while status-guard or cargo-deny
 # failed. Keep this list in step when a guard is added to any of the three
@@ -222,7 +224,10 @@ check-guards:
     bash scripts/check-host-api-paths.sh
     bash scripts/check-shared-crate-pin.sh
     bash scripts/check-oxide-artifacts-parity.sh
-    # Find deny.toml through a SIMT member; --workspace checks all root members.
+    # Host-crate dev-dependencies (cuda-async's loom) are outside the SIMT graph.
+    # The git-root deny.toml is a copy of cuda-oxide/deny.toml.
+    cd .. && cargo deny --manifest-path Cargo.toml --workspace --locked check
+    # Find deny.toml through a SIMT member; --workspace checks all SIMT members.
     cargo deny --manifest-path crates/cargo-oxide/Cargo.toml --workspace --locked check
     cargo deny --manifest-path crates/rustc-codegen-cuda/Cargo.toml --locked check
     cargo deny --manifest-path crates/cuda-macros/tests/device-only/Cargo.toml --locked check

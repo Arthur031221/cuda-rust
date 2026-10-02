@@ -16,8 +16,8 @@ ptx-dir = "simt"
 resolver = "2"
 
 [dependencies]
-cutile = "0.3.1"
-cutile-compiler = "0.3.1"
-cuda-async = "0.3.1"
-cutile-cuda-core = { version = "0.3.1", package = "cuda-core" }
+cutile = { path = "../../../../../cutile-rs/cutile", version = "0.4.0" }
+cutile-compiler = { path = "../../../../../cutile-rs/cutile-compiler", version = "0.4.0" }
+cuda-async = { path = "../../../../../cuda-async", version = "0.4.0" }
+cuda-core = { path = "../../../../../cuda-core", version = "0.4.0" }
 tokio = { version = "1", features = ["full"] }

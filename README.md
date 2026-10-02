@@ -169,11 +169,15 @@ On first run, `cargo-oxide` will automatically fetch and build the codegen backe
 
 #### Nix (alternative)
 
-If you have Nix with flakes enabled, `nix develop` in the repo gives you a reproducible shell with CUDA 13, LLVM 22, Clang, and the pinned Rust nightly — no manual apt installs. The shellHook auto-discovers host NVIDIA drivers on NixOS and non-NixOS systems.
+If you have Nix with flakes enabled, `nix develop` from `cuda-oxide/` gives you a reproducible shell with CUDA 13, LLVM 22, Clang, and the pinned Rust nightly — no manual apt installs. The shellHook auto-discovers host NVIDIA drivers on NixOS and non-NixOS systems.
 
 ```bash
-nix develop                                       # full dev shell in this repo
-nix run github:NVlabs/cuda-oxide#new my-project   # bootstrap a project
+# From the repository root:
+cd cuda-oxide
+nix develop
+
+# Or bootstrap a project without cloning:
+nix run 'github:NVIDIA/cuda-rust?dir=cuda-oxide#new' -- my-project
 ```
 
 #### Rust
@@ -233,7 +237,7 @@ sudo apt install clang-21   # or libclang-common-21-dev
 
 #### Dev Container
 
-The repository includes a standard devcontainer setup in `.devcontainer/` for a
+The repository includes a devcontainer setup in `cuda-oxide/.devcontainer/` for a
 reproducible CUDA, LLVM, Clang, and Rust environment. See the
 [installation chapter](cuda-oxide/cuda-oxide-book/getting-started/installation.md#dev-container)
 for editor and CLI usage.

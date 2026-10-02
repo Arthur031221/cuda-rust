@@ -1,9 +1,9 @@
-# Contributing to cuda-oxide
+# Contributing to CUDA Rust
 
-Thank you for your interest in contributing to cuda-oxide! This document
+Thank you for your interest in contributing to CUDA Rust! This document
 explains the contribution process and requirements.
 
-cuda-oxide is licensed under the [Apache License, Version 2.0](LICENSE).
+CUDA Rust is licensed under the [Apache License, Version 2.0](LICENSE).
 
 ## Community
 
@@ -23,7 +23,7 @@ If you are unsure whether something is worth a full issue or PR, the Discord
 
 ## Developer Certificate of Origin
 
-cuda-oxide requires the Developer Certificate of Origin (DCO) process for all
+CUDA Rust requires the Developer Certificate of Origin (DCO) process for all
 contributions. The DCO is a lightweight mechanism to certify that you wrote or
 otherwise have the right to submit the code you are contributing.
 
@@ -113,16 +113,22 @@ sign-off will not be merged.
 
 ## Code Requirements
 
-### Toolchain
+### Toolchains
+
+The shared host crates at the repository root use the root stable pin.
+Each product has its own workspace and toolchain under `cuda-oxide/` or
+`cutile-rs/`. For Tile development, see [cutile-rs/CONTRIBUTING.md](cutile-rs/CONTRIBUTING.md).
+The setup and validation commands below cover cuda-oxide.
 
 cuda-oxide requires the Rust nightly toolchain with `rustc_private` support.
 See the [README](README.md) for setup instructions.
 
-The repository includes a `flake.nix` that provides a fully reproducible development
-environment (CUDA 13, LLVM 22, Clang, pinned Rust nightly). If you have Nix with
-flakes enabled, `nix develop` is the quickest way to get everything in place.
+`cuda-oxide/flake.nix` provides the CUDA 13, LLVM 22, Clang, and pinned nightly
+development environment. From the repository root, run `cd cuda-oxide` and
+then `nix develop` with flakes enabled. Container setup is documented in
+[cuda-oxide/.devcontainer/README.md](cuda-oxide/.devcontainer/README.md).
 
-### Running the checks
+### Running the cuda-oxide checks
 
 Most of CI is one command. The SIMT tree ships a `Justfile` that mirrors the
 workflows:
@@ -146,13 +152,12 @@ hand even so.
 
 ### Formatting and Style
 
-- Run `cargo oxide fmt` before submitting. All code must be formatted with
-  `rustfmt`. Use `cargo oxide fmt` rather than a bare `cargo fmt`: the codegen
-  backend, every example and the `cuda-macros` device-only test fixture are
-  each their own workspace, so `cargo fmt` at the repository root reaches none
-  of them, while the `fmt` CI job checks all four scopes and will fail on code
-  you never had a chance to format. `cargo oxide fmt` mirrors that job, nested
-  example workspaces included.
+- Run `(cd cuda-oxide && cargo oxide fmt)` before submitting. All code must be
+  formatted with `rustfmt`. Use `cargo oxide fmt` rather than a bare
+  `cargo fmt`: the stable host workspace, SIMT workspace, codegen backend,
+  examples, and the `cuda-macros` device-only fixture are separate formatting
+  scopes. The command mirrors the `fmt` CI job, including the parent host
+  workspace in this merged repository and nested example workspaces.
 - Run clippy and address any warnings where reasonable. There is no single
   command covering its scopes, and it has more of them than `fmt`: the two
   workspaces below, plus one run per example, plus the nested example
@@ -161,7 +166,7 @@ hand even so.
   running by hand are:
 
   ```bash
-  cargo clippy --workspace --all-targets -- -D warnings
+  (cd cuda-oxide && cargo clippy --workspace --all-targets -- -D warnings)
   (cd cuda-oxide/crates/rustc-codegen-cuda && cargo clippy --all-targets -- -D warnings)
   ```
 - Follow existing code patterns and conventions in the crate you are
@@ -189,7 +194,8 @@ HTML; `;` for LLVM IR), never the wording.
 Preserve existing copyright notices. Add a copyright notice only when you are
 the copyright holder or are authorized to name the holder. Vendored and other
 third-party files must keep their upstream license and copyright notices, and
-must be attributed in `THIRD_PARTY_NOTICES` at the repository root.
+must retain their attribution. Embedded cuda-oxide dependencies are recorded
+in `cuda-oxide/THIRD_PARTY_NOTICES`.
 
 CI enforces this: `cuda-oxide/scripts/check-spdx-headers.sh` fails on any tracked source
 file missing the header (the `cargo-deny / every source file carries the SPDX
@@ -243,7 +249,7 @@ error's `Display` names the library candidates the loader tried.
 
 ## IP Review Process
 
-All contributions to cuda-oxide are subject to NVIDIA's IP review process.
+All contributions to CUDA Rust are subject to NVIDIA's IP review process.
 Maintainers will ensure that contributions are reviewed in accordance with
 NVIDIA's open source policies before merging.
 

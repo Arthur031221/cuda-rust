@@ -13,11 +13,11 @@ use super::*;
 
 const GIT_REPO: &str = "https://github.com/NVlabs/cuda-oxide.git";
 
-/// crates.io release of the host-side runtime shared with cutile-rs
-/// (`cuda-core`, `cuda-async`). The device and host glue crates above still
-/// come from this repository; the runtime is published from NVlabs/cutile-rs
-/// and the SIMT surface lives under its `simt` modules.
-pub(super) const SHARED_HOST_CRATES_VERSION: &str = "0.3.1";
+/// crates.io release of the host-side runtime (`cuda-core`, `cuda-async`).
+/// In-tree examples and `cuda-host` path-depend on the git-root copies;
+/// `cargo oxide new` still uses this version because a standalone project
+/// is not inside the monorepo.
+pub(super) const SHARED_HOST_CRATES_VERSION: &str = "0.4.0";
 
 const RUST_TOOLCHAIN_TOML: &str = r#"[toolchain]
 channel = "nightly-2026-08-28"

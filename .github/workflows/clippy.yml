@@ -34,6 +34,7 @@ jobs:
       - name: Run clippy (workspace crates)
         env:
           CUDA_TOOLKIT_PATH: ${{ steps.cuda-toolkit.outputs.CUDA_PATH }}
+        working-directory: cuda-oxide
         run: cargo clippy --workspace --all-targets -- -D warnings
 
       # `rustc-codegen-cuda` and each example under examples/ are their own
@@ -51,7 +52,7 @@ jobs:
       # same pinned nightly deduplicate on identical deps and compile each
       # one once. This is intentionally scoped *not* to cover the
       # `cargo clippy --workspace` step above, which already has a
-      # well-defined `target/` at the repo root.
+      # well-defined `target/` under cuda-oxide.
       - name: Run clippy (rustc-codegen-cuda)
         env:
           CUDA_TOOLKIT_PATH: ${{ steps.cuda-toolkit.outputs.CUDA_PATH }}

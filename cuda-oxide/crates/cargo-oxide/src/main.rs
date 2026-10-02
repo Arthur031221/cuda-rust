@@ -435,7 +435,7 @@ enum Commands {
         #[arg(long)]
         unchecked_indexing: bool,
     },
-    /// Format all crates (root workspace, codegen backend, examples)
+    /// Format all crates (SIMT workspace, codegen backend, examples)
     Fmt {
         /// Check formatting without modifying files
         #[arg(long)]

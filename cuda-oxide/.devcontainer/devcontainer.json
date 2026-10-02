@@ -2,8 +2,10 @@
   "name": "cuda-oxide",
   "build": {
     "dockerfile": "Dockerfile",
-    "context": ".."
+    "context": "."
   },
+  "workspaceMount": "source=${localWorkspaceFolder}/..,target=/workspaces/cuda-rust,type=bind",
+  "workspaceFolder": "/workspaces/cuda-rust/cuda-oxide",
   "features": {
     "ghcr.io/devcontainers/features/common-utils:2": {
       "username": "vscode",

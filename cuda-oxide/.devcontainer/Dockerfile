@@ -43,6 +43,6 @@ RUN apt-get update \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /workspaces/cuda-oxide
+WORKDIR /workspaces/cuda-rust/cuda-oxide
 
 CMD ["/bin/bash"]

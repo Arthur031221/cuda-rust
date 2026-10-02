@@ -25,11 +25,13 @@ cd cuda-oxide
 
 ## Install the Rust toolchain
 
-The repo ships a `rust-toolchain.toml` that pins the exact nightly version and
-components. Rustup picks it up automatically:
+The CUDA Oxide component ships `cuda-oxide/rust-toolchain.toml`, which pins the
+exact nightly version and components. Rustup picks it up automatically for
+commands run inside `cuda-oxide/`; the repository root and `cutile-rs/` stay on
+stable:
 
 ```toml
-# rust-toolchain.toml (already in the repo root)
+# cuda-oxide/rust-toolchain.toml
 [toolchain]
 channel = "nightly-2026-08-28"
 components = ["rust-src", "rustc-dev", "rust-analyzer", "clippy", "rustfmt", "llvm-tools"]
@@ -217,6 +219,7 @@ make livehtml   # starts dev server on http://localhost:8000
 Standard `cargo doc` works for the workspace crates:
 
 ```bash
+cd cuda-oxide
 cargo doc --no-deps --open
 ```
 
@@ -229,16 +232,21 @@ documented from cutile-rs.
 
 ```text
 repository/
-├── Cargo.toml              # Workspace root
-├── rust-toolchain.toml     # Pinned nightly + components
+├── Cargo.toml              # Stable shared-host workspace
+├── cuda-bindings/          # Shared CUDA bindings
+├── cuda-core/              # Shared host runtime
+├── cuda-core-derive/       # cuda-core derive macros
+├── cuda-async/             # Shared async runtime
 ├── cutile-rs/              # Tile DSL (nested import)
 └── cuda-oxide/
+    ├── Cargo.toml          # Nightly SIMT workspace
+    ├── rust-toolchain.toml # Pinned nightly + components
     ├── crates/
     │   ├── cuda-device/          # Device intrinsics (#![no_std])
     │   ├── cuda-host/            # Host launch APIs
     │   ├── cuda-macros/          # Proc macros (#[kernel], #[device], gpu_printf!)
-    │   │                         # (cuda-bindings, cuda-core, cuda-async come from
-    │   │                         #  NVlabs/cutile-rs; SIMT API under their simt modules)
+    │   │                         # (shared host crates live at the git root;
+    │   │                         #  SIMT API is under their simt modules)
     │   ├── cargo-oxide/          # Cargo subcommand
     │   ├── rustc-codegen-cuda/   # Codegen backend (not a workspace member)
     │   ├── mir-importer/         # MIR → Pliron IR translation

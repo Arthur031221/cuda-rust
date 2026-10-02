@@ -15,10 +15,10 @@ use cuda_async::device_future::DeviceFuture;
 use cuda_async::device_operation::{DeviceOp, ExecutionContext};
 use cuda_async::error::DeviceError;
 use cuda_async::launch::AsyncKernelLaunch;
+use cuda_core::{Function, LaunchConfig};
 use cutile::api::{copy_host_vec_to_device, zeros};
 use cutile::error::Error;
 use cutile::tensor::{IntoPartition, Reshape, Tensor, ToHostVec};
-use cutile_cuda_core::{Function, LaunchConfig};
 use std::future::IntoFuture;
 use std::sync::Arc;
 

@@ -42,8 +42,9 @@ runs:
         apt-get install -y -qq --no-install-recommends build-essential curl \
           ca-certificates git cmake pkg-config libclang-dev zlib1g-dev libzstd-dev
 
-    # Use cutile-rs/rust-toolchain.toml. The repo-root pin is the Oxide nightly,
-    # and rustup walks up from the working directory.
+    # Stay in cutile-rs. rustup walks up from the working directory, and the
+    # git-root pin is the host-crate stable toolchain, not this file. The Oxide
+    # nightly lives in cuda-oxide/rust-toolchain.toml.
     - name: Install Rust
       shell: bash
       working-directory: cutile-rs

@@ -1409,8 +1409,12 @@ mod tests {
     /// on stderr that it discarded the module's debug metadata.
     #[cfg(unix)]
     fn write_debug_dropping_tool(path: &Path, artifact: &str) {
+        // Publish the executable only after its writable handle is closed.
+        // GitHub's Linux runners can otherwise race exec with the filesystem
+        // releasing that handle and return ETXTBSY ("Text file busy").
+        let staging_path = path.with_extension("staging");
         std::fs::write(
-            path,
+            &staging_path,
             format!(
                 "#!/bin/sh\n\
                  if [ \"${{1:-}}\" = \"--version\" ]; then echo 'LLVM version 23.1.0'; exit 0; fi\n\
@@ -1423,9 +1427,10 @@ mod tests {
         )
         .unwrap();
         use std::os::unix::fs::PermissionsExt;
-        let mut permissions = std::fs::metadata(path).unwrap().permissions();
+        let mut permissions = std::fs::metadata(&staging_path).unwrap().permissions();
         permissions.set_mode(0o700);
-        std::fs::set_permissions(path, permissions).unwrap();
+        std::fs::set_permissions(&staging_path, permissions).unwrap();
+        std::fs::rename(staging_path, path).unwrap();
     }
 
     /// llc exits 0 after LLVM's verifier strips a malformed debug graph, so

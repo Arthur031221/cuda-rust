@@ -4,8 +4,8 @@
 # Enforce deny.toml over the example workspaces, which `cargo deny check` does
 # not reach.
 #
-# `cargo deny check` resolves the root workspace.  Every example under
-# crates/rustc-codegen-cuda/examples/ sets its own `[workspace]`, so the root
+# `cargo deny check` resolves the SIMT workspace. Every example under
+# crates/rustc-codegen-cuda/examples/ sets its own `[workspace]`, so that
 # run stops at that boundary and the license, source and ban policies never see
 # any crate an example pulls on its own.  #664 closed the *inventory* half of
 # this (dependency-licenses.csv now records those crates); this closes the
@@ -19,8 +19,8 @@
 # Why one run per distinct dependency set, not one per workspace:
 #
 #   Every example depends on cuda-device/cuda-host by path and on the shared
-#   cuda-core by the same cutile-rs pin as the root workspace, so each lock
-#   file re-lists the root workspace's own transitive crates.  Grouping the
+#   cuda-core by the same cutile-rs pin as the SIMT workspace, so each lock
+#   file re-lists the SIMT workspace's own transitive crates. Grouping the
 #   lock files by their exact set of third-party (name, version, source) triples
 #   collapses every example lock file (one per example directory, plus one per
 #   nested sub-workspace) to far fewer distinct sets, and one cargo-deny run
@@ -44,7 +44,7 @@ EXAMPLES_ROOT=crates/rustc-codegen-cuda/examples
 # NVlabs/cutile-rs by git while `[sources] allow-git` listed only pliron, and
 # cutile-rs's cuda-bindings 0.1.0 carried no license.  Both are gone: every
 # example now takes the shared host crates from the same crates.io release as
-# the root workspace, and the 0.3.x crates are Apache-2.0, so the example is
+# the SIMT workspace, and the 0.3.x crates are Apache-2.0, so the example is
 # judged like every other one.
 #
 # Every name here is checked against the examples on disk below, so a typo or a

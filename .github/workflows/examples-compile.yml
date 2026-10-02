@@ -1,11 +1,30 @@
 ---
 name: examples-compile
 
+# Path-filtered SIMT lane (same roots as ci.yml).
 on:
   push:
     branches: [main]
+    paths:
+      - 'cuda-oxide/**'
+      - 'cuda-bindings/**'
+      - 'cuda-core/**'
+      - 'cuda-core-derive/**'
+      - 'cuda-async/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - '.github/workflows/**'
   pull_request:
     branches: [main]
+    paths:
+      - 'cuda-oxide/**'
+      - 'cuda-bindings/**'
+      - 'cuda-core/**'
+      - 'cuda-core-derive/**'
+      - 'cuda-async/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - '.github/workflows/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref_name }}
@@ -27,14 +46,6 @@ jobs:
     steps:
       - name: Clone repository
         uses: actions/checkout@v4
-
-      # Oxide example compile never reads the imported cutile-rs tree, but the
-      # checkout shares the GitHub-hosted runner's ~14 GB disk with the CUDA
-      # toolkit, LLVM, cargo-oxide, and ~200 example workspaces. Leaving
-      # cutile-rs in place fills that disk mid-smoketest: later examples then
-      # fail rebuilding rustc-codegen-cuda with ENOSPC / ld bus errors.
-      - name: Drop cutile-rs from this job's workspace
-        run: rm -rf cutile-rs
 
       # Every example workspace must pin the same dependency versions. The
       # shared CARGO_TARGET_DIR below keys build caches on the resolved
@@ -103,8 +114,12 @@ jobs:
           # the backend .so at its fixed discovery path.
           CARGO_TARGET_DIR: ${{ runner.temp }}/examples-shared-target
           SMOKETEST_LOG_DIR: ${{ runner.temp }}/smoketest-logs
-          # rustc incremental dirs under rustc-codegen-cuda/target/ are what
-          # filled the runner once cutile-rs was in the checkout.
+          # The runner's ~14 GB disk also holds the CUDA toolkit, LLVM,
+          # cargo-oxide, and ~200 example workspaces; rustc incremental dirs
+          # under rustc-codegen-cuda/target/ are what used to fill it and fail
+          # later examples with ENOSPC / ld bus errors. The cutile-rs source
+          # tree itself is a few MB and must stay: cutile_inter_kernel
+          # path-depends on cutile-rs/cutile and cutile-rs/cutile-compiler.
           CARGO_INCREMENTAL: "0"
         run: |
           set -euo pipefail
@@ -116,6 +131,7 @@ jobs:
 
       - name: Artifact modes keep shared Cargo dependencies fresh
         timeout-minutes: 10
+        working-directory: cuda-oxide
         env:
           CUDA_TOOLKIT_PATH: ${{ steps.cuda-toolkit.outputs.CUDA_PATH }}
           CUDA_OXIDE_LLC: /usr/bin/llc-22
