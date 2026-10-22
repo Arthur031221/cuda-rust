@@ -21,6 +21,10 @@ pub mod debug_helpers {
         }
     }
 
+    pub fn generated_nested<const VALUES: [i32; 2]>(x: i32) -> i32 {
+        generated::<VALUES, true>(x) + 1
+    }
+
     pub trait Bump {
         fn bump(self) -> i32;
     }
