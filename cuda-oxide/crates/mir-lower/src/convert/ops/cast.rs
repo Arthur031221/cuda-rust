@@ -70,7 +70,6 @@ use pliron::context::{Context, Ptr};
 use pliron::irbuild::dialect_conversion::{DialectConversionRewriter, OperandsInfo};
 use pliron::irbuild::inserter::Inserter;
 use pliron::irbuild::rewriter::Rewriter;
-use pliron::location::Located;
 use pliron::op::Op;
 use pliron::operation::Operation;
 use pliron::printable::Printable;
@@ -87,7 +86,7 @@ pub fn convert(
     op: Ptr<Operation>,
     operands_info: &OperandsInfo,
 ) -> Result<()> {
-    let loc = op.deref(ctx).loc();
+    let loc = op.deref(ctx).loc().clone();
     let operands: Vec<_> = op.deref(ctx).operands().collect();
 
     let val = match operands.as_slice() {
@@ -1744,6 +1743,7 @@ mod tests {
             llvm_export::types::address_space::SHARED,
             llvm_export::types::address_space::CONSTANT,
             llvm_export::types::address_space::LOCAL,
+            7, // cluster shared
         ] {
             let mut ctx = make_ctx();
             let pointee_ty = int_ty(&mut ctx, 32, Signedness::Signless);
@@ -1923,6 +1923,7 @@ mod tests {
             llvm_export::types::address_space::SHARED,
             llvm_export::types::address_space::CONSTANT,
             llvm_export::types::address_space::LOCAL,
+            7, // cluster shared
         ] {
             let mut ctx = make_ctx();
             let usize_ty = int_ty(&mut ctx, 64, Signedness::Unsigned);
