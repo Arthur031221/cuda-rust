@@ -752,14 +752,40 @@ fn nested_helper_constants_keep_caller_chain_at_full_level() {
     check_cross_file_constant_locations(DebugInfoLevel::Full, true);
 }
 
+// Restrict the backend exception to the exact release reproduced in #1385.
+// In particular, 13.5 must establish its own profiling/debugging behavior.
+fn has_known_inline_debug_loss(fingerprint: &str) -> bool {
+    fingerprint
+        .lines()
+        .any(|line| line.trim() == "Cuda compilation tools, release 13.4, V13.4.92")
+}
+
+#[test]
+fn inline_debug_exception_does_not_cover_other_toolkit_versions() {
+    for (version, expected) in [
+        ("13.3, V13.3.36", false),
+        ("13.4, V13.4.92", true),
+        ("13.4, V13.4.93", false),
+        ("13.5, V13.5.92", false),
+    ] {
+        let banner = format!("tileiras\nCuda compilation tools, release {version}\n");
+        assert_eq!(has_known_inline_debug_loss(&banner), expected);
+    }
+    assert!(!has_known_inline_debug_loss("unknown assembler"));
+}
+
 // Opt-in, like `cubin_has_rust_lines_and_inline_frames`: the line table the
 // device compiler emits for generated constants must stay inside the kernel
-// and the helpers it calls.
+// and the helpers it calls. The exact IR/bytecode origins are checked above
+// on every toolkit; only the known 13.4.92 backend loss is accounted for here.
 #[test]
 #[ignore = "requires tileiras, nvdisasm, and readelf"]
 fn nested_helper_cubin_lines_stay_inside_their_functions() {
     common::with_test_stack(|| {
-        use cutile_compiler::cuda_tile_runtime_utils::{run_tileiras, TileirasOptions};
+        use cutile_compiler::cuda_tile_runtime_utils::{
+            run_tileiras, tileiras_fingerprint, TileirasOptions,
+        };
+        let known_debug_loss = has_known_inline_debug_loss(tileiras_fingerprint());
         let source = include_str!("debug_info.rs");
         let helpers = include_str!("fixtures/debug_helpers.rs");
         let kernel = source_line(
@@ -794,6 +820,7 @@ fn nested_helper_cubin_lines_stay_inside_their_functions() {
             let sass = output(Command::new("nvdisasm").arg("--print-line-info").arg(&path));
             let mut kernel_lines = Vec::new();
             let mut helper_lines = Vec::new();
+            let mut generated_lines = Vec::new();
             for entry in sass
                 .lines()
                 .filter_map(|line| line.trim().strip_prefix("//## File \""))
@@ -804,6 +831,10 @@ fn nested_helper_cubin_lines_stay_inside_their_functions() {
                     helper_lines.push(line);
                 } else if file.ends_with("tests/debug_info.rs") {
                     kernel_lines.push(line);
+                } else if known_debug_loss && file.starts_with("./tile-ir-") {
+                    // 13.4.92 substitutes internal Tile IR locations for Rust
+                    // helper locations. Do not accept arbitrary foreign files.
+                    generated_lines.push(line);
                 } else {
                     panic!("line entry outside the kernel and its helpers: {entry}");
                 }
@@ -813,7 +844,7 @@ fn nested_helper_cubin_lines_stay_inside_their_functions() {
                 "{level:?}: no kernel lines\n{sass}"
             );
             assert!(
-                !helper_lines.is_empty(),
+                !helper_lines.is_empty() || known_debug_loss,
                 "{level:?}: no helper lines\n{sass}"
             );
             assert!(
@@ -828,11 +859,22 @@ fn nested_helper_cubin_lines_stay_inside_their_functions() {
                     .all(|line| (first_helper..=last_helper).contains(line)),
                 "{level:?}: helper lines {helper_lines:?} outside {first_helper}..={last_helper}\n{sass}"
             );
+            let mut missing_inline_scope = false;
             if level == DebugInfoLevel::Full {
                 let dwarf = output(Command::new("readelf").arg("--debug-dump=info").arg(&path));
-                for name in ["nested_source", "generated_nested"] {
-                    assert!(dwarf.contains(name), "missing {name} in {dwarf}");
-                }
+                assert!(dwarf.contains("nested_source"), "{dwarf}");
+                missing_inline_scope = !dwarf.contains("generated_nested");
+                assert!(!missing_inline_scope || known_debug_loss, "{dwarf}");
+            }
+            if known_debug_loss
+                && (helper_lines.is_empty() || !generated_lines.is_empty() || missing_inline_scope)
+            {
+                eprintln!(
+                    "::warning::tileiras 13.4.92 has known inline-debug loss ({level:?}); \
+                     surviving Rust locations were checked and frontend/bytecode checks remain strict, \
+                     but helper locations/frames are not established by this backend. \
+                     See NVIDIA/cuda-rust#1385. Other versions remain strict."
+                );
             }
         }
     });
