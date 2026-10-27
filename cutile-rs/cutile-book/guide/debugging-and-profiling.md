@@ -230,7 +230,8 @@ when inlined, including across modules. Core operations are attributed to
 the user's call site. Multiple generated instructions can still map to one
 Rust line; this is not a one-to-one mapping, especially with optimization.
 
-Known toolkit limitation: tileiras **13.4.92** can replace Rust helper locations
+Known toolkit limitation: tileiras **13.4.59** (in the CUDA 13.4.1 CI image) and
+**13.4.92** can replace Rust helper locations
 with generated Tile IR locations and omit inline frames, even when the frontend
 bytecode contains the correct source information. This affects source correlation
 and helper backtraces. The same bytecode retains those locations with tileiras
